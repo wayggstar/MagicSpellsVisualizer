@@ -20,6 +20,7 @@
     "mathjs": "^15.2.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-resizable-panels": "^4.12.1",
     "three": "^0.185.1"
   },
   "devDependencies": {

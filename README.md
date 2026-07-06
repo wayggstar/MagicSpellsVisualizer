@@ -19,3 +19,5 @@ npm install three @react-three/fiber @react-three/drei mathjs js-yam
 npm create vite@latest . -- --template react
 npm install three @react-three/fiber @react-three/drei mathjs js-yaml
 npm run dev -- --host 0.0.0.0
+
+npm install @xyflow/react

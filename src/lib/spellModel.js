@@ -121,7 +121,7 @@ export function collectSounds(obj, result = []) {
   return result;
 }
 
-export function collectImageEffects(obj, result = []) {
+export function collectImageEffects(obj, imagePreviewAssets = {}, result = []) {
   if (!obj || typeof obj !== "object") return result;
 
   if (
@@ -130,6 +130,7 @@ export function collectImageEffects(obj, result = []) {
   ) {
     const effect = obj.effectlib;
     const preset = IMAGE_EFFECT_PRESETS.find((item) => item.fileName === effect.fileName) ?? IMAGE_EFFECT_PRESETS[0];
+    const previewAsset = imagePreviewAssets[effect.fileName];
 
     result.push({
       className: effect.class,
@@ -137,7 +138,9 @@ export function collectImageEffects(obj, result = []) {
       fileName: effect.fileName ?? preset.fileName,
       particle: effect.particle ?? PARTICLES[0],
       position: obj.position ?? "caster",
-      pixels: preset.pixels,
+      pixels: previewAsset?.pixels ?? preset.pixels,
+      pixelColors: previewAsset?.colors,
+      sourceName: previewAsset?.sourceName,
       size: Number(effect.size ?? 0.08),
       stepX: Number(effect.stepX ?? 5),
       stepY: Number(effect.stepY ?? 5),
@@ -145,7 +148,7 @@ export function collectImageEffects(obj, result = []) {
     });
   }
 
-  for (const value of Object.values(obj)) collectImageEffects(value, result);
+  for (const value of Object.values(obj)) collectImageEffects(value, imagePreviewAssets, result);
   return result;
 }
 

@@ -149,6 +149,111 @@ function EffectAddButtons({ spellName, onAddEffect }) {
   );
 }
 
+function toImagePath(fileName) {
+  const safeName = fileName.replace(/[^a-z0-9._-]+/gi, "_");
+  return `plugins/MagicSpells/images/${safeName}`;
+}
+
+function toHexColor(red, green, blue) {
+  return [red, green, blue].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+function loadImageElement(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
+}
+
+async function rasterizeImageFile(file, maxPixels = 32) {
+  const url = URL.createObjectURL(file);
+
+  try {
+    const image = await loadImageElement(url);
+    const scale = Math.min(1, maxPixels / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    canvas.width = width;
+    canvas.height = height;
+    context.drawImage(image, 0, 0, width, height);
+
+    const { data } = context.getImageData(0, 0, width, height);
+    const pixels = [];
+    const colors = [];
+
+    for (let y = 0; y < height; y += 1) {
+      let row = "";
+      const colorRow = [];
+
+      for (let x = 0; x < width; x += 1) {
+        const offset = (y * width + x) * 4;
+        const red = data[offset];
+        const green = data[offset + 1];
+        const blue = data[offset + 2];
+        const alpha = data[offset + 3];
+        const brightness = (red + green + blue) / 3;
+        const isVisible = alpha > 32 && brightness > 18;
+
+        row += isVisible ? "1" : "0";
+        colorRow.push(`#${toHexColor(red, green, blue)}`);
+      }
+
+      pixels.push(row);
+      colors.push(colorRow);
+    }
+
+    return { colors, height, pixels, sourceName: file.name, width };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function ImageUploadBuilder({ effect, previewAsset, onApplyImage }) {
+  const [isConverting, setIsConverting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleFileChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setError("");
+    setIsConverting(true);
+
+    try {
+      const preview = await rasterizeImageFile(file);
+      onApplyImage(toImagePath(file.name), preview);
+    } catch {
+      setError("Could not read this image.");
+    } finally {
+      setIsConverting(false);
+    }
+  }
+
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>Image To Particles</h3>
+        <span>{previewAsset ? `${previewAsset.width}x${previewAsset.height}` : "Upload"}</span>
+      </div>
+      <label className="image-upload-dropzone">
+        <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileChange} />
+        <strong>{isConverting ? "Converting..." : "Choose image"}</strong>
+        <span>{previewAsset?.sourceName ?? effect.fileName ?? "PNG, JPG, WebP, GIF first frame"}</span>
+      </label>
+      {error && <p className="upload-error">{error}</p>}
+      <p className="equation-help">
+        The app samples real pixels for preview. Put the same file under <code>plugins/MagicSpells/images/</code> on the server.
+      </p>
+    </div>
+  );
+}
+
 function getEffectPresetMeta(effect) {
   if (effect?.effect === "effectlib") return effect.effectlib?.class ?? "EffectLib";
   if (effect?.effect === "sound") return `Sound: ${effect.sound ?? "unknown"}`;
@@ -224,6 +329,8 @@ export function InspectorPanel({
   onAddCalledSpell,
   onSaveEffectPreset,
   onDeleteEffectPreset,
+  onSaveImagePreview,
+  imagePreviewAssets,
   userEffectPresets,
   diagnostics,
 }) {
@@ -478,6 +585,7 @@ export function InspectorPanel({
 
   if (selected.effect === "effectlib" && ["Image", "ColoredImage"].includes(selected.effectlib?.class)) {
     const effect = selected.effectlib;
+    const previewAsset = imagePreviewAssets?.[effect.fileName];
 
     return (
       <section className="panel inspector-panel" aria-label="Inspector">
@@ -505,6 +613,20 @@ export function InspectorPanel({
             onApplyPreset={(preset) => replaceSelected(preset.effect)}
             onDeletePreset={onDeleteEffectPreset}
             applyLabel="Apply to selected effect"
+          />
+
+          <ImageUploadBuilder
+            effect={effect}
+            previewAsset={previewAsset}
+            onApplyImage={(fileName, preview) => {
+              onSaveImagePreview(fileName, preview);
+              updateSelected((draft) => {
+                draft.effectlib.fileName = fileName;
+                if (draft.effectlib.class === "ColoredImage" && preview.colors?.[0]?.[0]) {
+                  draft.effectlib.color = preview.colors[0][0].replace("#", "");
+                }
+              });
+            }}
           />
 
           <Field label="class">

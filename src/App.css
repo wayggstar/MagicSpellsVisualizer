@@ -458,6 +458,52 @@ h3 {
   background: rgba(127, 29, 29, 0.34);
 }
 
+.image-upload-dropzone {
+  display: grid;
+  gap: 5px;
+  border: 1px dashed #3e566e;
+  border-radius: 8px;
+  padding: 12px;
+  color: #dce7f5;
+  background: rgba(23, 29, 39, 0.72);
+  cursor: pointer;
+}
+
+.image-upload-dropzone:hover {
+  border-color: #39d6c3;
+  background: #123032;
+}
+
+.image-upload-dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-upload-dropzone strong,
+.image-upload-dropzone span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.image-upload-dropzone strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.image-upload-dropzone span {
+  color: #9ca8b7;
+  font-size: 11px;
+}
+
+.upload-error {
+  margin-top: 8px;
+  color: #fecaca;
+  font-size: 11px;
+}
+
 .equation-help {
   margin-top: 10px;
   color: #9ca8b7;

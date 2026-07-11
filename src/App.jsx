@@ -22,15 +22,15 @@ import {
 } from "./lib/spellModel";
 
 const USER_EFFECT_PRESETS_KEY = "magicspellsvisualizer.effectPresets.v1";
+const IMAGE_PREVIEW_ASSETS_KEY = "magicspellsvisualizer.imagePreviewAssets.v1";
 
-function loadUserEffectPresets() {
+function loadLocalStorageValue(key, fallback) {
   try {
-    if (typeof window === "undefined") return [];
-    const raw = window.localStorage.getItem(USER_EFFECT_PRESETS_KEY);
-    const presets = raw ? JSON.parse(raw) : [];
-    return Array.isArray(presets) ? presets : [];
+    if (typeof window === "undefined") return fallback;
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
   } catch {
-    return [];
+    return fallback;
   }
 }
 
@@ -39,7 +39,14 @@ export default function App() {
   const [playing, setPlaying] = useState(true);
   const [cameraMode, setCameraMode] = useState("third");
   const [selectedPath, setSelectedPath] = useState(null);
-  const [userEffectPresets, setUserEffectPresets] = useState(loadUserEffectPresets);
+  const [userEffectPresets, setUserEffectPresets] = useState(() => {
+    const presets = loadLocalStorageValue(USER_EFFECT_PRESETS_KEY, []);
+    return Array.isArray(presets) ? presets : [];
+  });
+  const [imagePreviewAssets, setImagePreviewAssets] = useState(() => {
+    const assets = loadLocalStorageValue(IMAGE_PREVIEW_ASSETS_KEY, {});
+    return isRecord(assets) ? assets : {};
+  });
 
   useEffect(() => {
     try {
@@ -48,6 +55,14 @@ export default function App() {
       // Presets are optional convenience data; YAML editing still works if browser storage is unavailable.
     }
   }, [userEffectPresets]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(IMAGE_PREVIEW_ASSETS_KEY, JSON.stringify(imagePreviewAssets));
+    } catch {
+      // Image previews are convenience data; YAML remains valid without them.
+    }
+  }, [imagePreviewAssets]);
 
   const parseResult = useMemo(() => {
     try {
@@ -64,7 +79,7 @@ export default function App() {
 
   const parsed = parseResult.data;
   const equations = useMemo(() => collectEquations(parsed), [parsed]);
-  const imageEffects = useMemo(() => collectImageEffects(parsed), [parsed]);
+  const imageEffects = useMemo(() => collectImageEffects(parsed, imagePreviewAssets), [parsed, imagePreviewAssets]);
   const areas = useMemo(() => collectAreas(parsed), [parsed]);
   const sounds = useMemo(() => collectSounds(parsed), [parsed]);
   const flow = useMemo(() => buildSpellFlow(parsed), [parsed]);
@@ -113,6 +128,14 @@ export default function App() {
     setUserEffectPresets((presets) => presets.filter((preset) => preset.id !== id));
   }
 
+  function handleSaveImagePreview(fileName, previewAsset) {
+    if (!fileName || !previewAsset?.pixels) return;
+    setImagePreviewAssets((assets) => ({
+      ...assets,
+      [fileName]: previewAsset,
+    }));
+  }
+
   return (
     <main className="app-shell">
       <Group orientation="horizontal" className="workspace">
@@ -154,6 +177,8 @@ export default function App() {
             onAddCalledSpell={handleAddCalledSpell}
             onSaveEffectPreset={handleSaveEffectPreset}
             onDeleteEffectPreset={handleDeleteEffectPreset}
+            onSaveImagePreview={handleSaveImagePreview}
+            imagePreviewAssets={imagePreviewAssets}
             userEffectPresets={userEffectPresets}
             diagnostics={diagnostics}
           />

@@ -11,6 +11,7 @@ MagicSpells Visualizer is a React workspace for editing Minecraft MagicSpells YA
 - Preview `EquationEffect` particle paths and area radius boxes in a Three.js scene.
 - Use MagicSpells wiki-based class lists, presets, reference links, and structure checks.
 - Create and preview EffectLib `Image` and `ColoredImage` effects with Minecraft server image paths.
+- Upload an image in the inspector to sample its real pixels into the particle preview.
 - Save custom spell effect presets in the browser and reapply them to selected spells or effects.
 - Use YAML autocomplete for spell classes, particles, effect positions, sounds, and common options.
 

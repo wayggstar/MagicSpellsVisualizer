@@ -175,6 +175,87 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.diagnostics-card,
+.reference-box {
+  margin-top: 14px;
+  border: 1px solid #263142;
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.diagnostics-card__header,
+.reference-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.diagnostics-card__header span,
+.reference-box__header span,
+.reference-box__header a {
+  color: #8be4d4;
+  font-size: 12px;
+  font-weight: 720;
+  text-decoration: none;
+}
+
+.muted-text {
+  color: #9ca8b7;
+  font-size: 12px;
+}
+
+.diagnostics-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostic {
+  display: grid;
+  gap: 3px;
+  border-left: 3px solid #64748b;
+  padding-left: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+  text-align: left;
+}
+
+.diagnostic strong {
+  color: #94a3b8;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diagnostic--error {
+  border-left-color: #ef4444;
+}
+
+.diagnostic--error strong {
+  color: #fecaca;
+}
+
+.diagnostic--warning {
+  border-left-color: #f59e0b;
+}
+
+.diagnostic--warning strong {
+  color: #fde68a;
+}
+
+.diagnostic--info {
+  border-left-color: #38bdf8;
+}
+
+.diagnostic--info strong {
+  color: #bae6fd;
+}
+
 .panel-strip {
   display: flex;
   align-items: center;
@@ -254,6 +335,38 @@ h3 {
   display: grid;
   gap: 9px;
   margin-bottom: 18px;
+}
+
+.option-table {
+  display: grid;
+  gap: 9px;
+}
+
+.option-table div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.option-table code {
+  min-width: 0;
+  color: #dbeafe;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.option-table span {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.option-table p {
+  grid-column: 1 / -1;
+  color: #9ca8b7;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .field {

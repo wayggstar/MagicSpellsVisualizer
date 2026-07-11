@@ -8,11 +8,15 @@ export function EditorPanel({
   onYamlTextChange,
   parseError,
   counts,
+  diagnostics,
   playing,
   cameraMode,
   onTogglePlaying,
   onSetCameraMode,
 }) {
+  const errorCount = diagnostics.filter((item) => item.severity === "error").length;
+  const warningCount = diagnostics.filter((item) => item.severity === "warning").length;
+
   return (
     <section className="panel editor-panel" aria-label="YAML editor">
       <div className="panel-header">
@@ -69,7 +73,25 @@ export function EditorPanel({
           <span>Sound</span>
         </div>
       </div>
+
+      <div className="diagnostics-card">
+        <div className="diagnostics-card__header">
+          <h3>Wiki Checks</h3>
+          <span>{errorCount} errors / {warningCount} warnings</span>
+        </div>
+        {diagnostics.length === 0 ? (
+          <p className="muted-text">No MagicSpells structure issues found.</p>
+        ) : (
+          <ul className="diagnostics-list">
+            {diagnostics.slice(0, 5).map((item) => (
+              <li key={item.id} className={`diagnostic diagnostic--${item.severity}`}>
+                <strong>{item.severity}</strong>
+                <span>{item.spellName}: {item.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }
-

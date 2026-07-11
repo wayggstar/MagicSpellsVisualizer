@@ -1,4 +1,12 @@
-import { PARTICLES, SOUNDS } from "../data/spellOptions";
+import {
+  EFFECT_POSITIONS,
+  EFFECT_TYPES,
+  PARTICLES,
+  SOUNDS,
+  SPELL_CLASSES,
+  SPELL_PRESETS,
+  WIKI_BASE_URL,
+} from "../data/spellOptions";
 
 export function normalizeEquation(expr) {
   return String(expr)
@@ -39,6 +47,19 @@ export function updateByPath(obj, path, updater) {
 export function getSpellClassName(spellClass) {
   if (!spellClass) return "UnknownClass";
   return String(spellClass).split(".").filter(Boolean).at(-1);
+}
+
+export function getSpellWikiUrl(spellClass) {
+  const className = getSpellClassName(spellClass);
+  return `${WIKI_BASE_URL}/${encodeURIComponent(className)}`;
+}
+
+export function isTargetedSpell(spellClass) {
+  return String(spellClass ?? "").includes(".targeted.");
+}
+
+export function isKnownSpellClass(spellClass) {
+  return SPELL_CLASSES.includes(spellClass);
 }
 
 export function collectEquations(obj, result = []) {
@@ -95,6 +116,159 @@ export function collectSounds(obj, result = []) {
   return result;
 }
 
+function visitEffects(spell, visitor) {
+  const effects = spell.effects;
+  if (!effects || typeof effects !== "object") return;
+
+  if (Array.isArray(effects)) {
+    effects.forEach((effect, index) => visitor(effect, String(index)));
+    return;
+  }
+
+  Object.entries(effects).forEach(([key, effect]) => visitor(effect, key));
+}
+
+function makeDiagnostic(severity, spellName, message, path = [spellName]) {
+  return { id: `${severity}-${path.join("-")}-${message}`, severity, spellName, message, path };
+}
+
+export function validateSpellConfig(parsed) {
+  if (!parsed || typeof parsed !== "object") return [];
+
+  const diagnostics = [];
+  const calledSpellNames = new Set();
+
+  for (const [spellName, spell] of Object.entries(parsed)) {
+    if (!spell || typeof spell !== "object") {
+      diagnostics.push(makeDiagnostic("error", spellName, "Spell entry must be a configuration section."));
+      continue;
+    }
+
+    const spellClass = spell["spell-class"];
+
+    if (!spellClass) {
+      diagnostics.push(makeDiagnostic("error", spellName, "Missing required spell-class."));
+    } else if (!isKnownSpellClass(spellClass)) {
+      diagnostics.push(makeDiagnostic("warning", spellName, `Unknown or unlisted spell class: ${spellClass}`));
+    }
+
+    const called = spell.spells ?? [];
+    if (called && !Array.isArray(called)) {
+      diagnostics.push(makeDiagnostic("error", spellName, "spells must be a list of sub-spell names."));
+    }
+
+    if (Array.isArray(called)) {
+      called.forEach((calledName, index) => {
+        const normalizedName = String(calledName).split("(")[0];
+        calledSpellNames.add(normalizedName);
+        if (!parsed[normalizedName]) {
+          diagnostics.push(
+            makeDiagnostic("error", spellName, `Sub-spell "${normalizedName}" is not defined.`, [
+              spellName,
+              "spells",
+              String(index),
+            ]),
+          );
+        }
+      });
+    }
+
+    if (String(spellClass ?? "").includes("AreaEffectSpell")) {
+      if (!spell["horizontal-radius"]) {
+        diagnostics.push(makeDiagnostic("warning", spellName, "AreaEffectSpell should define horizontal-radius."));
+      }
+      if (!spell["vertical-radius"]) {
+        diagnostics.push(makeDiagnostic("warning", spellName, "AreaEffectSpell should define vertical-radius."));
+      }
+      if (!Array.isArray(spell.spells) || spell.spells.length === 0) {
+        diagnostics.push(makeDiagnostic("info", spellName, "AreaEffectSpell usually casts one or more sub-spells."));
+      }
+    }
+
+    if (isTargetedSpell(spellClass) && spell["target-players"] === undefined && spell["can-target"] === undefined) {
+      diagnostics.push(makeDiagnostic("info", spellName, "Targeted spells can use can-target or target-players options."));
+    }
+
+    visitEffects(spell, (effect, effectKey) => {
+      if (!effect || typeof effect !== "object") {
+        diagnostics.push(
+          makeDiagnostic("error", spellName, `Effect "${effectKey}" must be a configuration section.`, [
+            spellName,
+            "effects",
+            effectKey,
+          ]),
+        );
+        return;
+      }
+
+      if (!effect.position) {
+        diagnostics.push(
+          makeDiagnostic("error", spellName, `Effect "${effectKey}" is missing position.`, [
+            spellName,
+            "effects",
+            effectKey,
+          ]),
+        );
+      } else if (!EFFECT_POSITIONS.includes(effect.position)) {
+        diagnostics.push(
+          makeDiagnostic("warning", spellName, `Effect "${effectKey}" uses unlisted position "${effect.position}".`, [
+            spellName,
+            "effects",
+            effectKey,
+          ]),
+        );
+      }
+
+      if (!effect.effect) {
+        diagnostics.push(
+          makeDiagnostic("error", spellName, `Effect "${effectKey}" is missing effect type.`, [
+            spellName,
+            "effects",
+            effectKey,
+          ]),
+        );
+      } else if (!EFFECT_TYPES.includes(effect.effect)) {
+        diagnostics.push(
+          makeDiagnostic("warning", spellName, `Effect "${effectKey}" uses unlisted effect type "${effect.effect}".`, [
+            spellName,
+            "effects",
+            effectKey,
+          ]),
+        );
+      }
+
+      if (effect.effect === "effectlib" && effect.effectlib?.class === "EquationEffect") {
+        for (const key of ["xEquation", "yEquation", "zEquation"]) {
+          if (!effect.effectlib[key]) {
+            diagnostics.push(
+              makeDiagnostic("error", spellName, `EquationEffect "${effectKey}" is missing ${key}.`, [
+                spellName,
+                "effects",
+                effectKey,
+                "effectlib",
+                key,
+              ]),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  for (const calledName of calledSpellNames) {
+    if (parsed[calledName] && parsed[calledName]["helper-spell"] !== true) {
+      diagnostics.push(
+        makeDiagnostic("info", calledName, "Wiki recommends helper-spell: true for sub-spells in chains.", [
+          calledName,
+          "helper-spell",
+        ]),
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
 export function addEffect(parsed, spellName, type) {
   const next = structuredClone(parsed);
   const spell = next[spellName];
@@ -137,53 +311,11 @@ export function addEffect(parsed, spellName, type) {
 export function addNewSpell(parsed, type) {
   const next = structuredClone(parsed ?? {});
   const suffix = Date.now().toString().slice(-5);
+  const preset = SPELL_PRESETS[type];
 
-  if (type === "multi") {
-    next[`new_multi_${suffix}`] = {
-      "spell-class": ".MultiSpell",
-      spells: [],
-    };
-  }
+  if (!preset) return next;
 
-  if (type === "area") {
-    next[`new_area_${suffix}`] = {
-      "spell-class": ".targeted.AreaEffectSpell",
-      "horizontal-radius": 5,
-      "vertical-radius": 3,
-      "point-blank": true,
-      "target-caster": false,
-      "target-players": true,
-      "target-non-players": true,
-      "fail-if-no-targets": false,
-      spells: [],
-      effects: {},
-    };
-  }
-
-  if (type === "projectile") {
-    next[`new_projectile_${suffix}`] = {
-      "spell-class": ".instant.ParticleProjectileSpell",
-      "projectile-velocity": 20,
-      "tick-interval": 1,
-      "max-distance": 20,
-      effects: {
-        trail: {
-          position: "special",
-          effect: "effectlib",
-          effectlib: {
-            class: "EquationEffect",
-            particle: "crit",
-            particles: 12,
-            duration: 80,
-            orientPitch: false,
-            xEquation: "0",
-            yEquation: "1.6",
-            zEquation: "0.12t",
-          },
-        },
-      },
-    };
-  }
+  next[`new_${type}_${suffix}`] = structuredClone(preset.spell);
 
   return next;
 }
@@ -197,4 +329,3 @@ export function addCalledSpell(parsed, spellName, calledSpellName) {
 
   return next;
 }
-

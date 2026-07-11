@@ -15,6 +15,7 @@ import {
   collectAreas,
   collectEquations,
   collectSounds,
+  validateSpellConfig,
 } from "./lib/spellModel";
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
   const areas = useMemo(() => collectAreas(parsed), [parsed]);
   const sounds = useMemo(() => collectSounds(parsed), [parsed]);
   const flow = useMemo(() => buildSpellFlow(parsed), [parsed]);
+  const diagnostics = useMemo(() => validateSpellConfig(parsed), [parsed]);
 
   function applyParsed(nextParsed) {
     setYamlText(YAML.dump(nextParsed, { lineWidth: -1, noRefs: true }));
@@ -68,6 +70,7 @@ export default function App() {
               areas: areas.length,
               sounds: sounds.length,
             }}
+            diagnostics={diagnostics}
             playing={playing}
             cameraMode={cameraMode}
             onTogglePlaying={() => setPlaying((value) => !value)}
@@ -91,6 +94,7 @@ export default function App() {
             onAddEffect={handleAddEffect}
             onAddNewSpell={handleAddNewSpell}
             onAddCalledSpell={handleAddCalledSpell}
+            diagnostics={diagnostics}
           />
         </Panel>
 

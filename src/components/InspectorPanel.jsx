@@ -1,5 +1,12 @@
-import { PARTICLES, SOUNDS, SPELL_CLASSES } from "../data/spellOptions";
-import { getByPath, updateByPath } from "../lib/spellModel";
+import {
+  COMMON_OPTIONS,
+  PARTICLES,
+  SOUNDS,
+  SPELL_CLASSES,
+  SPELL_PRESETS,
+  TARGETING_OPTIONS,
+} from "../data/spellOptions";
+import { getByPath, getSpellClassName, getSpellWikiUrl, isTargetedSpell, updateByPath } from "../lib/spellModel";
 import { ToolbarButton } from "./ToolbarButton";
 
 function Field({ label, children }) {
@@ -20,6 +27,70 @@ function ActionGroup({ children, title }) {
   );
 }
 
+function PresetButtons({ onAddNewSpell }) {
+  return (
+    <>
+      {Object.entries(SPELL_PRESETS).map(([key, preset]) => (
+        <ToolbarButton key={key} icon={preset.label.slice(0, 1)} onClick={() => onAddNewSpell(key)}>
+          {preset.label}
+        </ToolbarButton>
+      ))}
+    </>
+  );
+}
+
+function OptionReference({ spellClass }) {
+  const options = isTargetedSpell(spellClass) ? [...COMMON_OPTIONS, ...TARGETING_OPTIONS] : COMMON_OPTIONS;
+
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>Wiki Reference</h3>
+        {spellClass && (
+          <a href={getSpellWikiUrl(spellClass)} target="_blank" rel="noreferrer">
+            {getSpellClassName(spellClass)}
+          </a>
+        )}
+      </div>
+      <div className="option-table">
+        {options.slice(0, 10).map((option) => (
+          <div key={option.key}>
+            <code>{option.key}</code>
+            <span>{option.type}</span>
+            <p>{option.note}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DiagnosticsForSelection({ diagnostics, selectedPath }) {
+  const selectedSpell = selectedPath?.[0];
+  const scoped = selectedSpell ? diagnostics.filter((item) => item.spellName === selectedSpell) : diagnostics;
+
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>Checks</h3>
+        <span>{scoped.length}</span>
+      </div>
+      {scoped.length === 0 ? (
+        <p className="muted-text">No issues for this selection.</p>
+      ) : (
+        <ul className="diagnostics-list">
+          {scoped.map((item) => (
+            <li key={item.id} className={`diagnostic diagnostic--${item.severity}`}>
+              <strong>{item.severity}</strong>
+              <span>{item.message}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function InspectorPanel({
   parsed,
   selectedPath,
@@ -27,6 +98,7 @@ export function InspectorPanel({
   onAddEffect,
   onAddNewSpell,
   onAddCalledSpell,
+  diagnostics,
 }) {
   const spellNames = parsed ? Object.keys(parsed) : [];
   const firstSpell = spellNames[0];
@@ -56,14 +128,13 @@ export function InspectorPanel({
           <span>Inspector</span>
         </div>
         <ActionGroup title="Add Spell">
-          <ToolbarButton icon="M" onClick={() => onAddNewSpell("multi")}>MultiSpell</ToolbarButton>
-          <ToolbarButton icon="A" onClick={() => onAddNewSpell("area")}>AreaEffect</ToolbarButton>
-          <ToolbarButton icon="P" onClick={() => onAddNewSpell("projectile")}>Projectile</ToolbarButton>
+          <PresetButtons onAddNewSpell={onAddNewSpell} />
         </ActionGroup>
         <ActionGroup title="Add Effect">
           <ToolbarButton icon="FX" onClick={() => onAddEffect(firstSpell, "equation")}>Equation</ToolbarButton>
           <ToolbarButton icon="S" onClick={() => onAddEffect(firstSpell, "sound")}>Sound</ToolbarButton>
         </ActionGroup>
+        <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
       </section>
     );
   }
@@ -92,9 +163,7 @@ export function InspectorPanel({
           <p className="selected-name">{spellName}</p>
 
           <ActionGroup title="Create">
-            <ToolbarButton icon="M" onClick={() => onAddNewSpell("multi")}>Multi</ToolbarButton>
-            <ToolbarButton icon="A" onClick={() => onAddNewSpell("area")}>Area</ToolbarButton>
-            <ToolbarButton icon="P" onClick={() => onAddNewSpell("projectile")}>Projectile</ToolbarButton>
+            <PresetButtons onAddNewSpell={onAddNewSpell} />
           </ActionGroup>
 
           <Field label="spell-class">
@@ -133,6 +202,9 @@ export function InspectorPanel({
             <ToolbarButton icon="FX" onClick={() => onAddEffect(spellName, "equation")}>Equation</ToolbarButton>
             <ToolbarButton icon="S" onClick={() => onAddEffect(spellName, "sound")}>Sound</ToolbarButton>
           </ActionGroup>
+
+          <OptionReference spellClass={spellClass} />
+          <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
         </div>
       </section>
     );
@@ -147,6 +219,8 @@ export function InspectorPanel({
           <span>EquationEffect</span>
         </div>
         <div className="inspector-content">
+          <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
+
           <ActionGroup title="Add">
             <ToolbarButton icon="FX" onClick={() => onAddEffect(selectedPath[0], "equation")}>Equation</ToolbarButton>
             <ToolbarButton icon="S" onClick={() => onAddEffect(selectedPath[0], "sound")}>Sound</ToolbarButton>
@@ -196,6 +270,8 @@ export function InspectorPanel({
           <span>Sound Effect</span>
         </div>
         <div className="inspector-content">
+          <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
+
           <ActionGroup title="Add">
             <ToolbarButton icon="FX" onClick={() => onAddEffect(selectedPath[0], "equation")}>Equation</ToolbarButton>
             <ToolbarButton icon="S" onClick={() => onAddEffect(selectedPath[0], "sound")}>Sound</ToolbarButton>
@@ -238,4 +314,3 @@ export function InspectorPanel({
     </section>
   );
 }
-

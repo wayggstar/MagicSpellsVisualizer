@@ -1,6 +1,7 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { yaml } from "@codemirror/lang-yaml";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { magicSpellsYamlCompletions } from "../lib/yamlCompletions";
 import { ToolbarButton } from "./ToolbarButton";
 
 export function EditorPanel({
@@ -31,13 +32,13 @@ export function EditorPanel({
         value={yamlText}
         height="54vh"
         theme={oneDark}
-        extensions={[yaml()]}
+        extensions={[yaml(), magicSpellsYamlCompletions()]}
         onChange={onYamlTextChange}
         basicSetup={{
           lineNumbers: true,
           foldGutter: true,
           highlightActiveLine: true,
-          autocompletion: true,
+          autocompletion: false,
           bracketMatching: true,
         }}
       />

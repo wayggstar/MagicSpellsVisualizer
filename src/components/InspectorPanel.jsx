@@ -1,5 +1,6 @@
 import {
   COMMON_OPTIONS,
+  EQUATION_PRESETS,
   PARTICLES,
   SOUNDS,
   SPELL_CLASSES,
@@ -87,6 +88,28 @@ function DiagnosticsForSelection({ diagnostics, selectedPath }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function EquationPresetBuilder({ onApplyPreset }) {
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>Equation Builder</h3>
+        <span>t = tick</span>
+      </div>
+      <div className="preset-grid">
+        {EQUATION_PRESETS.map((preset) => (
+          <button key={preset.id} type="button" className="preset-button" onClick={() => onApplyPreset(preset)}>
+            <strong>{preset.label}</strong>
+            <span>{preset.description}</span>
+          </button>
+        ))}
+      </div>
+      <p className="equation-help">
+        Use numbers with sin/cos/tan, for example <code>3cos(0.1t)</code>. The preview normalizes missing multiplication signs.
+      </p>
     </div>
   );
 }
@@ -225,6 +248,17 @@ export function InspectorPanel({
             <ToolbarButton icon="FX" onClick={() => onAddEffect(selectedPath[0], "equation")}>Equation</ToolbarButton>
             <ToolbarButton icon="S" onClick={() => onAddEffect(selectedPath[0], "sound")}>Sound</ToolbarButton>
           </ActionGroup>
+
+          <EquationPresetBuilder
+            onApplyPreset={(preset) => updateSelected((draft) => {
+              draft.effectlib.particle = preset.particle;
+              draft.effectlib.particles = preset.particles;
+              draft.effectlib.duration = preset.duration;
+              draft.effectlib.xEquation = preset.xEquation;
+              draft.effectlib.yEquation = preset.yEquation;
+              draft.effectlib.zEquation = preset.zEquation;
+            })}
+          />
 
           <Field label="position">
             <select value={selected.position ?? "caster"} onChange={(event) => updateSelected((draft) => { draft.position = event.target.value; })}>

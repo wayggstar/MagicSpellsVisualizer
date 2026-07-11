@@ -15,6 +15,7 @@ import {
   collectAreas,
   collectEquations,
   collectSounds,
+  isRecord,
   validateSpellConfig,
 } from "./lib/spellModel";
 
@@ -26,7 +27,12 @@ export default function App() {
 
   const parseResult = useMemo(() => {
     try {
-      return { data: YAML.load(yamlText), error: null };
+      const data = YAML.load(yamlText);
+
+      if (data === null || data === undefined) return { data: null, error: null };
+      if (!isRecord(data)) return { data: null, error: "Root YAML must be a spell map." };
+
+      return { data, error: null };
     } catch (error) {
       return { data: null, error: error.message };
     }

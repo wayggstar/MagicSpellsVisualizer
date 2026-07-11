@@ -26,6 +26,10 @@ export function parseParticleColor(color, particle) {
   return /^[0-9a-fA-F]{6}$/.test(text) ? `#${text}` : "#ffffff";
 }
 
+export function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 export function getByPath(obj, path) {
   if (!path) return undefined;
   return path.reduce((acc, key) => acc?.[key], obj);
@@ -133,7 +137,7 @@ function makeDiagnostic(severity, spellName, message, path = [spellName]) {
 }
 
 export function validateSpellConfig(parsed) {
-  if (!parsed || typeof parsed !== "object") return [];
+  if (!isRecord(parsed)) return [];
 
   const diagnostics = [];
   const calledSpellNames = new Set();
@@ -271,6 +275,7 @@ export function validateSpellConfig(parsed) {
 
 export function addEffect(parsed, spellName, type) {
   const next = structuredClone(parsed);
+  if (!isRecord(next[spellName])) next[spellName] = { "spell-class": ".instant.DummySpell" };
   const spell = next[spellName];
   if (!spell.effects) spell.effects = {};
 
@@ -309,7 +314,7 @@ export function addEffect(parsed, spellName, type) {
 }
 
 export function addNewSpell(parsed, type) {
-  const next = structuredClone(parsed ?? {});
+  const next = isRecord(parsed) ? structuredClone(parsed) : {};
   const suffix = Date.now().toString().slice(-5);
   const preset = SPELL_PRESETS[type];
 
@@ -322,6 +327,7 @@ export function addNewSpell(parsed, type) {
 
 export function addCalledSpell(parsed, spellName, calledSpellName) {
   const next = structuredClone(parsed);
+  if (!isRecord(next[spellName])) next[spellName] = { "spell-class": ".MultiSpell" };
   const spell = next[spellName];
 
   if (!spell.spells) spell.spells = [];

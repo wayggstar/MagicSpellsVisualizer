@@ -1,11 +1,11 @@
-import { getSpellClassName } from "./spellModel";
+import { getSpellClassName, isRecord } from "./spellModel";
 
 function makeNodeId(...parts) {
   return parts.map((part) => encodeURIComponent(String(part))).join("-");
 }
 
 export function buildSpellFlow(parsed) {
-  if (!parsed) return { nodes: [], edges: [] };
+  if (!isRecord(parsed)) return { nodes: [], edges: [] };
 
   const nodes = [];
   const edges = [];
@@ -14,7 +14,8 @@ export function buildSpellFlow(parsed) {
   for (const [spellName, spell] of Object.entries(parsed)) {
     const spellId = makeNodeId("spell", spellName);
     const classId = makeNodeId("spell", spellName, "class");
-    const spellClass = spell["spell-class"] ?? "unknown";
+    const spellConfig = isRecord(spell) ? spell : {};
+    const spellClass = spellConfig["spell-class"] ?? "unknown";
 
     nodes.push({
       id: spellId,
@@ -42,7 +43,7 @@ export function buildSpellFlow(parsed) {
       target: classId,
     });
 
-    const calledSpells = spell.spells ?? [];
+    const calledSpells = Array.isArray(spellConfig.spells) ? spellConfig.spells : [];
     let callY = spellY + 88;
 
     for (const called of calledSpells) {
@@ -78,7 +79,7 @@ export function buildSpellFlow(parsed) {
       callY += 82;
     }
 
-    const effects = spell.effects ?? {};
+    const effects = isRecord(spellConfig.effects) || Array.isArray(spellConfig.effects) ? spellConfig.effects : {};
     let effectY = callY + 38;
 
     for (const [key, effect] of Object.entries(effects)) {

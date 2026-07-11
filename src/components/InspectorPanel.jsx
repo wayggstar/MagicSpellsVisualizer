@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   COMMON_OPTIONS,
   EQUATION_PRESETS,
@@ -148,13 +149,82 @@ function EffectAddButtons({ spellName, onAddEffect }) {
   );
 }
 
+function getEffectPresetMeta(effect) {
+  if (effect?.effect === "effectlib") return effect.effectlib?.class ?? "EffectLib";
+  if (effect?.effect === "sound") return `Sound: ${effect.sound ?? "unknown"}`;
+  return effect?.effect ?? "Effect";
+}
+
+function SavedEffectPresets({
+  presets = [],
+  selectedEffect,
+  onSaveCurrent,
+  onApplyPreset,
+  onDeletePreset,
+  applyLabel = "Apply",
+}) {
+  const [presetName, setPresetName] = useState("");
+
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>Saved Effect Presets</h3>
+        <span>{presets.length}</span>
+      </div>
+
+      {selectedEffect && (
+        <div className="preset-save-row">
+          <input
+            value={presetName}
+            placeholder={`${getEffectPresetMeta(selectedEffect)} preset`}
+            onChange={(event) => setPresetName(event.target.value)}
+          />
+          <ToolbarButton
+            icon="S"
+            onClick={() => {
+              onSaveCurrent(presetName, selectedEffect);
+              setPresetName("");
+            }}
+          >
+            Save
+          </ToolbarButton>
+        </div>
+      )}
+
+      {presets.length === 0 ? (
+        <p className="muted-text">No saved presets yet.</p>
+      ) : (
+        <div className="saved-preset-list">
+          {presets.map((preset) => (
+            <div key={preset.id} className="saved-preset-item">
+              <button type="button" className="preset-button" onClick={() => onApplyPreset(preset)}>
+                <strong>{preset.name}</strong>
+                <span>{preset.type ?? getEffectPresetMeta(preset.effect)}</span>
+              </button>
+              <button type="button" className="small-danger-button" onClick={() => onDeletePreset(preset.id)}>
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="equation-help">{applyLabel} uses the saved effect settings.</p>
+    </div>
+  );
+}
+
 export function InspectorPanel({
   parsed,
   selectedPath,
   onChangeParsed,
   onAddEffect,
+  onAddEffectPreset,
   onAddNewSpell,
   onAddCalledSpell,
+  onSaveEffectPreset,
+  onDeleteEffectPreset,
+  userEffectPresets,
   diagnostics,
 }) {
   const spellNames = parsed ? Object.keys(parsed) : [];
@@ -168,6 +238,10 @@ export function InspectorPanel({
     });
 
     onChangeParsed(next);
+  }
+
+  function replaceSelected(nextValue) {
+    onChangeParsed(updateByPath(parsed, selectedPath, () => structuredClone(nextValue)));
   }
 
   if (!parsed) {
@@ -190,6 +264,14 @@ export function InspectorPanel({
         <ActionGroup title="Add Effect">
           <EffectAddButtons spellName={firstSpell} onAddEffect={onAddEffect} />
         </ActionGroup>
+        {firstSpell && (
+          <SavedEffectPresets
+            presets={userEffectPresets}
+            onApplyPreset={(preset) => onAddEffectPreset(firstSpell, preset)}
+            onDeletePreset={onDeleteEffectPreset}
+            applyLabel={`Apply to ${firstSpell}`}
+          />
+        )}
         <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
       </section>
     );
@@ -258,6 +340,13 @@ export function InspectorPanel({
             <EffectAddButtons spellName={spellName} onAddEffect={onAddEffect} />
           </ActionGroup>
 
+          <SavedEffectPresets
+            presets={userEffectPresets}
+            onApplyPreset={(preset) => onAddEffectPreset(spellName, preset)}
+            onDeletePreset={onDeleteEffectPreset}
+            applyLabel={`Apply to ${spellName}`}
+          />
+
           <OptionReference spellClass={spellClass} />
           <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
         </div>
@@ -289,6 +378,15 @@ export function InspectorPanel({
               draft.effectlib.yEquation = preset.yEquation;
               draft.effectlib.zEquation = preset.zEquation;
             })}
+          />
+
+          <SavedEffectPresets
+            presets={userEffectPresets}
+            selectedEffect={selected}
+            onSaveCurrent={onSaveEffectPreset}
+            onApplyPreset={(preset) => replaceSelected(preset.effect)}
+            onDeletePreset={onDeleteEffectPreset}
+            applyLabel="Apply to selected effect"
           />
 
           <Field label="position">
@@ -341,6 +439,15 @@ export function InspectorPanel({
             <EffectAddButtons spellName={selectedPath[0]} onAddEffect={onAddEffect} />
           </ActionGroup>
 
+          <SavedEffectPresets
+            presets={userEffectPresets}
+            selectedEffect={selected}
+            onSaveCurrent={onSaveEffectPreset}
+            onApplyPreset={(preset) => replaceSelected(preset.effect)}
+            onDeletePreset={onDeleteEffectPreset}
+            applyLabel="Apply to selected effect"
+          />
+
           <Field label="position">
             <select value={selected.position ?? "caster"} onChange={(event) => updateSelected((draft) => { draft.position = event.target.value; })}>
               <option value="caster">caster</option>
@@ -389,6 +496,15 @@ export function InspectorPanel({
               draft.effectlib.fileName = preset.fileName;
               draft.effectlib.color = preset.color;
             })}
+          />
+
+          <SavedEffectPresets
+            presets={userEffectPresets}
+            selectedEffect={selected}
+            onSaveCurrent={onSaveEffectPreset}
+            onApplyPreset={(preset) => replaceSelected(preset.effect)}
+            onDeletePreset={onDeleteEffectPreset}
+            applyLabel="Apply to selected effect"
           />
 
           <Field label="class">

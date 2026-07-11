@@ -379,6 +379,21 @@ export function addEffect(parsed, spellName, type) {
   return next;
 }
 
+export function addEffectPreset(parsed, spellName, preset) {
+  const next = structuredClone(parsed);
+  if (!isRecord(next[spellName])) next[spellName] = { "spell-class": ".instant.DummySpell" };
+  const spell = next[spellName];
+  if (!spell.effects) spell.effects = {};
+
+  const effect = structuredClone(preset.effect);
+  const className = effect.effect === "effectlib" ? effect.effectlib?.class : effect.effect;
+  const prefix = String(className ?? "preset").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+  const key = `${prefix}_${Date.now().toString().slice(-5)}`;
+  spell.effects[key] = effect;
+
+  return next;
+}
+
 export function addNewSpell(parsed, type) {
   const next = isRecord(parsed) ? structuredClone(parsed) : {};
   const suffix = Date.now().toString().slice(-5);

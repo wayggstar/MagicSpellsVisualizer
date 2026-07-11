@@ -1,5 +1,5 @@
 import * as YAML from "js-yaml";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import "./App.css";
 import { EditorPanel } from "./components/EditorPanel";
@@ -11,6 +11,7 @@ import { buildSpellFlow } from "./lib/flowModel";
 import {
   addCalledSpell,
   addEffect,
+  addEffectPreset,
   addNewSpell,
   collectAreas,
   collectEquations,
@@ -20,11 +21,33 @@ import {
   validateSpellConfig,
 } from "./lib/spellModel";
 
+const USER_EFFECT_PRESETS_KEY = "magicspellsvisualizer.effectPresets.v1";
+
+function loadUserEffectPresets() {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = window.localStorage.getItem(USER_EFFECT_PRESETS_KEY);
+    const presets = raw ? JSON.parse(raw) : [];
+    return Array.isArray(presets) ? presets : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function App() {
   const [yamlText, setYamlText] = useState(sampleYaml);
   const [playing, setPlaying] = useState(true);
   const [cameraMode, setCameraMode] = useState("third");
   const [selectedPath, setSelectedPath] = useState(null);
+  const [userEffectPresets, setUserEffectPresets] = useState(loadUserEffectPresets);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(USER_EFFECT_PRESETS_KEY, JSON.stringify(userEffectPresets));
+    } catch {
+      // Presets are optional convenience data; YAML editing still works if browser storage is unavailable.
+    }
+  }, [userEffectPresets]);
 
   const parseResult = useMemo(() => {
     try {
@@ -56,6 +79,11 @@ export default function App() {
     applyParsed(addEffect(parsed, spellName, type));
   }
 
+  function handleAddEffectPreset(spellName, preset) {
+    if (!parsed || !spellName || !preset?.effect) return;
+    applyParsed(addEffectPreset(parsed, spellName, preset));
+  }
+
   function handleAddNewSpell(type) {
     applyParsed(addNewSpell(parsed, type));
   }
@@ -63,6 +91,26 @@ export default function App() {
   function handleAddCalledSpell(spellName, calledSpellName) {
     if (!parsed || !spellName || !calledSpellName) return;
     applyParsed(addCalledSpell(parsed, spellName, calledSpellName));
+  }
+
+  function handleSaveEffectPreset(name, effect) {
+    const trimmedName = name.trim() || "Untitled Effect";
+    const className = effect.effect === "effectlib" ? effect.effectlib?.class : effect.effect;
+
+    setUserEffectPresets((presets) => [
+      {
+        id: `effect-${Date.now()}`,
+        name: trimmedName,
+        type: className ?? "effect",
+        createdAt: new Date().toISOString(),
+        effect: structuredClone(effect),
+      },
+      ...presets,
+    ]);
+  }
+
+  function handleDeleteEffectPreset(id) {
+    setUserEffectPresets((presets) => presets.filter((preset) => preset.id !== id));
   }
 
   return (
@@ -101,8 +149,12 @@ export default function App() {
             selectedPath={selectedPath}
             onChangeParsed={applyParsed}
             onAddEffect={handleAddEffect}
+            onAddEffectPreset={handleAddEffectPreset}
             onAddNewSpell={handleAddNewSpell}
             onAddCalledSpell={handleAddCalledSpell}
+            onSaveEffectPreset={handleSaveEffectPreset}
+            onDeleteEffectPreset={handleDeleteEffectPreset}
+            userEffectPresets={userEffectPresets}
             diagnostics={diagnostics}
           />
         </Panel>

@@ -70,6 +70,10 @@ export function EditorPanel({
           <span>AreaEffectSpell</span>
         </div>
         <div>
+          <strong>{counts.images}</strong>
+          <span>ImageEffect</span>
+        </div>
+        <div>
           <strong>{counts.sounds}</strong>
           <span>Sound</span>
         </div>

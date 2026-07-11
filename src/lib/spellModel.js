@@ -1,6 +1,7 @@
 import {
   EFFECT_POSITIONS,
   EFFECT_TYPES,
+  IMAGE_EFFECT_PRESETS,
   PARTICLES,
   SOUNDS,
   SPELL_CLASSES,
@@ -117,6 +118,34 @@ export function collectSounds(obj, result = []) {
   if (!obj || typeof obj !== "object") return result;
   if (obj.effect === "sound" && obj.sound) result.push(obj);
   for (const value of Object.values(obj)) collectSounds(value, result);
+  return result;
+}
+
+export function collectImageEffects(obj, result = []) {
+  if (!obj || typeof obj !== "object") return result;
+
+  if (
+    obj.effect === "effectlib" &&
+    ["Image", "ColoredImage"].includes(obj.effectlib?.class)
+  ) {
+    const effect = obj.effectlib;
+    const preset = IMAGE_EFFECT_PRESETS.find((item) => item.fileName === effect.fileName) ?? IMAGE_EFFECT_PRESETS[0];
+
+    result.push({
+      className: effect.class,
+      color: parseParticleColor(effect.color ?? preset.color, effect.particle),
+      fileName: effect.fileName ?? preset.fileName,
+      particle: effect.particle ?? PARTICLES[0],
+      position: obj.position ?? "caster",
+      pixels: preset.pixels,
+      size: Number(effect.size ?? 0.08),
+      stepX: Number(effect.stepX ?? 5),
+      stepY: Number(effect.stepY ?? 5),
+      invert: Boolean(effect.invert),
+    });
+  }
+
+  for (const value of Object.values(obj)) collectImageEffects(value, result);
   return result;
 }
 
@@ -256,6 +285,20 @@ export function validateSpellConfig(parsed) {
           }
         }
       }
+
+      if (effect.effect === "effectlib" && ["Image", "ColoredImage"].includes(effect.effectlib?.class)) {
+        if (!effect.effectlib.fileName) {
+          diagnostics.push(
+            makeDiagnostic("warning", spellName, `Image effect "${effectKey}" should define fileName.`, [
+              spellName,
+              "effects",
+              effectKey,
+              "effectlib",
+              "fileName",
+            ]),
+          );
+        }
+      }
     });
   }
 
@@ -307,6 +350,29 @@ export function addEffect(parsed, spellName, type) {
       volume: 1,
       pitch: 1,
       delay: 0,
+    };
+  }
+
+  if (type === "image" || type === "coloredImage") {
+    const preset = type === "coloredImage" ? IMAGE_EFFECT_PRESETS[1] : IMAGE_EFFECT_PRESETS[0];
+
+    spell.effects[key] = {
+      position: "caster",
+      effect: "effectlib",
+      effectlib: {
+        class: type === "coloredImage" ? "ColoredImage" : "Image",
+        particle: "redstone",
+        fileName: preset.fileName,
+        isGif: false,
+        enableRotation: true,
+        stepY: 5,
+        stepX: 5,
+        size: 0.08,
+        iterations: 1,
+        color: preset.color,
+        period: 9,
+        invert: false,
+      },
     };
   }
 

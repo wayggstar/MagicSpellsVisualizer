@@ -1,6 +1,7 @@
 import {
   COMMON_OPTIONS,
   EQUATION_PRESETS,
+  IMAGE_EFFECT_PRESETS,
   PARTICLES,
   SOUNDS,
   SPELL_CLASSES,
@@ -114,6 +115,39 @@ function EquationPresetBuilder({ onApplyPreset }) {
   );
 }
 
+function ImagePresetBuilder({ onApplyPreset }) {
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>Image Presets</h3>
+        <span>EffectLib</span>
+      </div>
+      <div className="preset-grid">
+        {IMAGE_EFFECT_PRESETS.map((preset) => (
+          <button key={preset.id} type="button" className="preset-button" onClick={() => onApplyPreset(preset)}>
+            <strong>{preset.label}</strong>
+            <span>{preset.fileName}</span>
+          </button>
+        ))}
+      </div>
+      <p className="equation-help">
+        Put the real image under <code>plugins/MagicSpells/images/</code>, then match <code>fileName</code> here.
+      </p>
+    </div>
+  );
+}
+
+function EffectAddButtons({ spellName, onAddEffect }) {
+  return (
+    <>
+      <ToolbarButton icon="FX" onClick={() => onAddEffect(spellName, "equation")}>Equation</ToolbarButton>
+      <ToolbarButton icon="S" onClick={() => onAddEffect(spellName, "sound")}>Sound</ToolbarButton>
+      <ToolbarButton icon="I" onClick={() => onAddEffect(spellName, "image")}>Image</ToolbarButton>
+      <ToolbarButton icon="CI" onClick={() => onAddEffect(spellName, "coloredImage")}>Colored</ToolbarButton>
+    </>
+  );
+}
+
 export function InspectorPanel({
   parsed,
   selectedPath,
@@ -154,8 +188,7 @@ export function InspectorPanel({
           <PresetButtons onAddNewSpell={onAddNewSpell} />
         </ActionGroup>
         <ActionGroup title="Add Effect">
-          <ToolbarButton icon="FX" onClick={() => onAddEffect(firstSpell, "equation")}>Equation</ToolbarButton>
-          <ToolbarButton icon="S" onClick={() => onAddEffect(firstSpell, "sound")}>Sound</ToolbarButton>
+          <EffectAddButtons spellName={firstSpell} onAddEffect={onAddEffect} />
         </ActionGroup>
         <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
       </section>
@@ -222,8 +255,7 @@ export function InspectorPanel({
           </div>
 
           <ActionGroup title="Effects">
-            <ToolbarButton icon="FX" onClick={() => onAddEffect(spellName, "equation")}>Equation</ToolbarButton>
-            <ToolbarButton icon="S" onClick={() => onAddEffect(spellName, "sound")}>Sound</ToolbarButton>
+            <EffectAddButtons spellName={spellName} onAddEffect={onAddEffect} />
           </ActionGroup>
 
           <OptionReference spellClass={spellClass} />
@@ -245,8 +277,7 @@ export function InspectorPanel({
           <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
 
           <ActionGroup title="Add">
-            <ToolbarButton icon="FX" onClick={() => onAddEffect(selectedPath[0], "equation")}>Equation</ToolbarButton>
-            <ToolbarButton icon="S" onClick={() => onAddEffect(selectedPath[0], "sound")}>Sound</ToolbarButton>
+            <EffectAddButtons spellName={selectedPath[0]} onAddEffect={onAddEffect} />
           </ActionGroup>
 
           <EquationPresetBuilder
@@ -307,8 +338,7 @@ export function InspectorPanel({
           <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
 
           <ActionGroup title="Add">
-            <ToolbarButton icon="FX" onClick={() => onAddEffect(selectedPath[0], "equation")}>Equation</ToolbarButton>
-            <ToolbarButton icon="S" onClick={() => onAddEffect(selectedPath[0], "sound")}>Sound</ToolbarButton>
+            <EffectAddButtons spellName={selectedPath[0]} onAddEffect={onAddEffect} />
           </ActionGroup>
 
           <Field label="position">
@@ -333,6 +363,92 @@ export function InspectorPanel({
           </Field>
           <Field label="delay">
             <input type="number" value={selected.delay ?? 0} onChange={(event) => updateSelected((draft) => { draft.delay = Number(event.target.value); })} />
+          </Field>
+        </div>
+      </section>
+    );
+  }
+
+  if (selected.effect === "effectlib" && ["Image", "ColoredImage"].includes(selected.effectlib?.class)) {
+    const effect = selected.effectlib;
+
+    return (
+      <section className="panel inspector-panel" aria-label="Inspector">
+        <div className="panel-strip">
+          <span>{effect.class} Effect</span>
+        </div>
+        <div className="inspector-content">
+          <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
+
+          <ActionGroup title="Add">
+            <EffectAddButtons spellName={selectedPath[0]} onAddEffect={onAddEffect} />
+          </ActionGroup>
+
+          <ImagePresetBuilder
+            onApplyPreset={(preset) => updateSelected((draft) => {
+              draft.effectlib.fileName = preset.fileName;
+              draft.effectlib.color = preset.color;
+            })}
+          />
+
+          <Field label="class">
+            <select value={effect.class ?? "Image"} onChange={(event) => updateSelected((draft) => { draft.effectlib.class = event.target.value; })}>
+              <option value="Image">Image</option>
+              <option value="ColoredImage">ColoredImage</option>
+            </select>
+          </Field>
+          <Field label="position">
+            <select value={selected.position ?? "caster"} onChange={(event) => updateSelected((draft) => { draft.position = event.target.value; })}>
+              <option value="caster">caster</option>
+              <option value="special">special</option>
+              <option value="target">target</option>
+            </select>
+          </Field>
+          <Field label="fileName">
+            <input value={effect.fileName ?? ""} onChange={(event) => updateSelected((draft) => { draft.effectlib.fileName = event.target.value; })} />
+          </Field>
+          <Field label="particle">
+            <select value={effect.particle ?? "redstone"} onChange={(event) => updateSelected((draft) => { draft.effectlib.particle = event.target.value; })}>
+              {PARTICLES.map((particle) => (
+                <option key={particle} value={particle}>{particle}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="color">
+            <input value={effect.color ?? "ffffff"} onChange={(event) => updateSelected((draft) => { draft.effectlib.color = event.target.value.replace("#", ""); })} />
+          </Field>
+          <Field label="stepX">
+            <input type="number" value={effect.stepX ?? 5} onChange={(event) => updateSelected((draft) => { draft.effectlib.stepX = Number(event.target.value); })} />
+          </Field>
+          <Field label="stepY">
+            <input type="number" value={effect.stepY ?? 5} onChange={(event) => updateSelected((draft) => { draft.effectlib.stepY = Number(event.target.value); })} />
+          </Field>
+          <Field label="size">
+            <input type="number" step="0.01" value={effect.size ?? 0.08} onChange={(event) => updateSelected((draft) => { draft.effectlib.size = Number(event.target.value); })} />
+          </Field>
+          <Field label="period">
+            <input type="number" value={effect.period ?? 9} onChange={(event) => updateSelected((draft) => { draft.effectlib.period = Number(event.target.value); })} />
+          </Field>
+          <Field label="iterations">
+            <input type="number" value={effect.iterations ?? 1} onChange={(event) => updateSelected((draft) => { draft.effectlib.iterations = Number(event.target.value); })} />
+          </Field>
+          <Field label="isGif">
+            <select value={String(effect.isGif ?? false)} onChange={(event) => updateSelected((draft) => { draft.effectlib.isGif = event.target.value === "true"; })}>
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </Field>
+          <Field label="enableRotation">
+            <select value={String(effect.enableRotation ?? true)} onChange={(event) => updateSelected((draft) => { draft.effectlib.enableRotation = event.target.value === "true"; })}>
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </Field>
+          <Field label="invert">
+            <select value={String(effect.invert ?? false)} onChange={(event) => updateSelected((draft) => { draft.effectlib.invert = event.target.value === "true"; })}>
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
           </Field>
         </div>
       </section>

@@ -14,6 +14,7 @@ import {
   addNewSpell,
   collectAreas,
   collectEquations,
+  collectImageEffects,
   collectSounds,
   isRecord,
   validateSpellConfig,
@@ -40,6 +41,7 @@ export default function App() {
 
   const parsed = parseResult.data;
   const equations = useMemo(() => collectEquations(parsed), [parsed]);
+  const imageEffects = useMemo(() => collectImageEffects(parsed), [parsed]);
   const areas = useMemo(() => collectAreas(parsed), [parsed]);
   const sounds = useMemo(() => collectSounds(parsed), [parsed]);
   const flow = useMemo(() => buildSpellFlow(parsed), [parsed]);
@@ -73,6 +75,7 @@ export default function App() {
             parseError={parseResult.error}
             counts={{
               equations: equations.length,
+              images: imageEffects.length,
               areas: areas.length,
               sounds: sounds.length,
             }}
@@ -107,7 +110,13 @@ export default function App() {
         <Separator className="resize-handle" />
 
         <Panel defaultSize={24} minSize={20}>
-          <PreviewPanel areas={areas} equations={equations} playing={playing} cameraMode={cameraMode} />
+          <PreviewPanel
+            areas={areas}
+            equations={equations}
+            imageEffects={imageEffects}
+            playing={playing}
+            cameraMode={cameraMode}
+          />
         </Panel>
       </Group>
     </main>

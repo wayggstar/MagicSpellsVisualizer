@@ -3,6 +3,7 @@ import { EditorView } from "@codemirror/view";
 import {
   EFFECT_POSITIONS,
   EFFECT_TYPES,
+  IMAGE_EFFECT_PRESETS,
   PARTICLES,
   SOUNDS,
   SPELL_CLASSES,
@@ -24,6 +25,8 @@ const valueCompletions = [
   ...SPELL_CLASSES.map((value) => ({ label: value, type: "class", apply: quoted(value), detail: "spell-class" })),
   ...PARTICLES.map((value) => ({ label: value, type: "constant", detail: "particle" })),
   ...EFFECT_TYPES.map((value) => ({ label: value, type: "keyword", detail: "effect" })),
+  ...["EquationEffect", "Image", "ColoredImage"].map((value) => ({ label: value, type: "class", detail: "effectlib class" })),
+  ...IMAGE_EFFECT_PRESETS.map((preset) => ({ label: preset.fileName, type: "file", detail: preset.label })),
   ...EFFECT_POSITIONS.map((value) => ({ label: value, type: "keyword", detail: "position" })),
   ...SOUNDS.map((value) => ({ label: value, type: "constant", detail: "sound" })),
   { label: "true", type: "keyword" },

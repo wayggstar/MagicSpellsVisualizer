@@ -40,6 +40,37 @@ function SpecialMarker() {
   );
 }
 
+function ImageEffectPreview({ imageEffects }) {
+  return (
+    <group>
+      {imageEffects.map((image, imageIndex) => {
+        const rows = image.invert ? image.pixels.map((row) => row.replace(/[01]/g, (char) => (char === "1" ? "0" : "1"))) : image.pixels;
+        const maxWidth = Math.max(...rows.map((row) => row.length));
+        const spacing = Math.max(0.16, image.stepX * image.size * 0.45);
+        const ySpacing = Math.max(0.16, image.stepY * image.size * 0.45);
+        const base = image.position === "special" ? [0, 2.1, 4] : [0, 2.6 + imageIndex * 1.4, 0];
+
+        return rows.flatMap((row, rowIndex) =>
+          [...row].map((pixel, colIndex) => {
+            if (pixel !== "1") return null;
+
+            const x = base[0] + (colIndex - (maxWidth - 1) / 2) * spacing;
+            const y = base[1] + ((rows.length - 1) / 2 - rowIndex) * ySpacing;
+            const z = base[2] + imageIndex * 0.12;
+
+            return (
+              <mesh key={`${image.fileName}-${imageIndex}-${rowIndex}-${colIndex}`} position={[x, y, z]}>
+                <sphereGeometry args={[Math.max(0.035, image.size * 0.75), 8, 8]} />
+                <meshBasicMaterial color={image.color} transparent opacity={0.95} />
+              </mesh>
+            );
+          }),
+        );
+      })}
+    </group>
+  );
+}
+
 function EquationDots({ eq, timeRef }) {
   const dots = useMemo(() => Array.from({ length: Math.max(0, eq.particles) }), [eq.particles]);
 
@@ -106,7 +137,7 @@ function CameraMode({ mode }) {
   return mode === "free" ? <OrbitControls ref={controlsRef} makeDefault /> : null;
 }
 
-export function PreviewScene({ areas, equations, playing, cameraMode }) {
+export function PreviewScene({ areas, equations, imageEffects, playing, cameraMode }) {
   return (
     <Canvas camera={{ position: [0, 3, -7], fov: 75 }} className="preview-canvas">
       <color attach="background" args={["#101217"]} />
@@ -115,9 +146,9 @@ export function PreviewScene({ areas, equations, playing, cameraMode }) {
       <axesHelper args={[5]} />
       <AreaPreview areas={areas} />
       <SpecialMarker />
+      <ImageEffectPreview imageEffects={imageEffects} />
       <ParticlePreview equations={equations} playing={playing} />
       <CameraMode mode={cameraMode} />
     </Canvas>
   );
 }
-

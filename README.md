@@ -1,23 +1,34 @@
-# React + Vite
+# MagicSpells Visualizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+MagicSpells Visualizer is a React workspace for editing Minecraft MagicSpells YAML and previewing spell structure visually.
 
-Currently, two official plugins are available:
+## What It Does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Edit MagicSpells YAML with CodeMirror.
+- Parse spells, called spell chains, `EquationEffect`, area spells, and sounds.
+- Inspect spell relationships as a React Flow graph.
+- Edit common spell/effect fields from an inspector panel.
+- Preview `EquationEffect` particle paths and area radius boxes in a Three.js scene.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Vite + React
+- CodeMirror YAML editor
+- React Flow
+- Three.js through `@react-three/fiber` and `@react-three/drei`
+- `js-yaml` for parsing and dumping YAML
+- `mathjs` for evaluating particle equations
 
-## Expanding the Oxlint configuration
+## Development
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+npm install
+npm run dev
+```
 
-npm install three @react-three/fiber @react-three/drei mathjs js-yam
-npm create vite@latest . -- --template react
-npm install three @react-three/fiber @react-three/drei mathjs js-yaml
-npm run dev -- --host 0.0.0.0
+## Build
 
-npm install @xyflow/react
+```bash
+npm run build
+```
+

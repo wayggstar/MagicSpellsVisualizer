@@ -1,4 +1,6 @@
 import {
+  EFFECTLIB_CLASSES,
+  EFFECTLIB_PRESETS,
   EFFECT_POSITIONS,
   EFFECT_TYPES,
   IMAGE_EFFECT_PRESETS,
@@ -152,6 +154,38 @@ export function collectImageEffects(obj, imagePreviewAssets = {}, result = []) {
   return result;
 }
 
+export function collectEffectLibShapes(obj, result = []) {
+  if (!obj || typeof obj !== "object") return result;
+
+  if (
+    obj.effect === "effectlib" &&
+    obj.effectlib?.class &&
+    !["EquationEffect", "Image", "ColoredImage"].includes(obj.effectlib.class)
+  ) {
+    const effect = obj.effectlib;
+
+    result.push({
+      className: effect.class,
+      color: parseParticleColor(effect.color ?? effect.sphereColor, effect.particle ?? effect.tornadoParticle),
+      particle: effect.particle ?? effect.tornadoParticle ?? PARTICLES[0],
+      position: obj.position ?? "caster",
+      radius: Number(effect.radius ?? effect.maxTornadoRadius ?? 1.5),
+      height: Number(effect.height ?? effect.tornadoHeight ?? 3),
+      edgeLength: Number(effect.edgeLength ?? 3),
+      length: Number(effect.length ?? 4),
+      yOffset: Number(effect.yOffset ?? 1.4),
+      particles: Number(effect.particles ?? effect.circleParticles ?? 48),
+      text: String(effect.text ?? effect.class),
+      size: Number(effect.size ?? 0.12),
+      sphere: Boolean(effect.sphere),
+      reverse: Boolean(effect.reverse),
+    });
+  }
+
+  for (const value of Object.values(obj)) collectEffectLibShapes(value, result);
+  return result;
+}
+
 function visitEffects(spell, visitor) {
   const effects = spell.effects;
   if (!effects || typeof effects !== "object") return;
@@ -302,6 +336,18 @@ export function validateSpellConfig(parsed) {
           );
         }
       }
+
+      if (effect.effect === "effectlib" && effect.effectlib?.class && !EFFECTLIB_CLASSES.includes(effect.effectlib.class)) {
+        diagnostics.push(
+          makeDiagnostic("warning", spellName, `EffectLib class "${effect.effectlib.class}" is not in the local wiki list.`, [
+            spellName,
+            "effects",
+            effectKey,
+            "effectlib",
+            "class",
+          ]),
+        );
+      }
     });
   }
 
@@ -375,6 +421,24 @@ export function addEffect(parsed, spellName, type) {
         color: preset.color,
         period: 9,
         invert: false,
+      },
+    };
+  }
+
+  if (type === "effectlib") {
+    const preset = EFFECTLIB_PRESETS[0];
+
+    spell.effects[key] = {
+      position: "caster",
+      effect: "effectlib",
+      effectlib: {
+        class: preset.className,
+        particle: preset.particle,
+        color: preset.color,
+        radius: preset.radius,
+        particles: preset.particles,
+        period: preset.period,
+        iterations: preset.iterations,
       },
     };
   }

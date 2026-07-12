@@ -74,6 +74,10 @@ export function EditorPanel({
           <span>ImageEffect</span>
         </div>
         <div>
+          <strong>{counts.effectLib}</strong>
+          <span>EffectLib</span>
+        </div>
+        <div>
           <strong>{counts.sounds}</strong>
           <span>Sound</span>
         </div>

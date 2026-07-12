@@ -74,6 +74,100 @@ function ImageEffectPreview({ imageEffects }) {
   );
 }
 
+function shapeBase(shape, index) {
+  if (shape.position === "special" || shape.position === "projectile") return [0, shape.yOffset, 4];
+  if (shape.position === "target") return [2.6, shape.yOffset, 2.4];
+  return [0, shape.yOffset + index * 0.25, 0];
+}
+
+function pointForShape(shape, index, total) {
+  const ratio = total <= 1 ? 0 : index / (total - 1);
+  const angle = ratio * Math.PI * 2;
+  const className = shape.className;
+
+  if (["Circle", "Heart", "Love", "Donut", "Star"].includes(className)) {
+    return [Math.cos(angle) * shape.radius, 0, Math.sin(angle) * shape.radius];
+  }
+
+  if (["Sphere", "Shield", "Atom"].includes(className)) {
+    const phi = Math.acos(1 - 2 * ratio);
+    const theta = Math.PI * (1 + 5 ** 0.5) * index;
+    const y = Math.cos(phi) * shape.radius;
+    const ring = Math.sin(phi) * shape.radius;
+    if (!shape.sphere && y < 0) return null;
+    return [Math.cos(theta) * ring, shape.reverse ? -y : y, Math.sin(theta) * ring];
+  }
+
+  if (["Helix", "Tornado", "Vortex", "Warp"].includes(className)) {
+    const y = ratio * shape.height;
+    const radius = className === "Tornado" ? shape.radius * (1 - ratio * 0.75) : shape.radius;
+    return [Math.cos(angle * 4) * radius, y, Math.sin(angle * 4) * radius];
+  }
+
+  if (className === "Cone") {
+    const y = ratio * shape.length;
+    const radius = shape.radius * ratio;
+    return [Math.cos(angle * 5) * radius, y, Math.sin(angle * 5) * radius];
+  }
+
+  if (["Cube", "Cuboid", "Grid"].includes(className)) {
+    const edge = shape.edgeLength / 2;
+    const side = Math.floor(index / Math.max(1, total / 12));
+    const sideRatio = (index % Math.max(1, Math.floor(total / 12))) / Math.max(1, Math.floor(total / 12));
+    const line = -edge + sideRatio * shape.edgeLength;
+    const corners = [
+      [line, -edge, -edge], [line, -edge, edge], [line, edge, -edge], [line, edge, edge],
+      [-edge, line, -edge], [-edge, line, edge], [edge, line, -edge], [edge, line, edge],
+      [-edge, -edge, line], [-edge, edge, line], [edge, -edge, line], [edge, edge, line],
+    ];
+    return corners[side % corners.length];
+  }
+
+  if (className === "Cylinder") {
+    const y = ratio * shape.height;
+    return [Math.cos(angle * 3) * shape.radius, y, Math.sin(angle * 3) * shape.radius];
+  }
+
+  if (["Line", "Trace", "Arc"].includes(className)) {
+    return [0, 1.4, ratio * shape.length];
+  }
+
+  if (className === "Text") {
+    const chars = [...shape.text].slice(0, 8);
+    const charIndex = index % Math.max(1, chars.length);
+    const row = Math.floor(index / Math.max(1, chars.length));
+    return [(charIndex - chars.length / 2) * shape.size * 5, row * shape.size, 0];
+  }
+
+  return [Math.cos(angle) * shape.radius, ratio * Math.max(1, shape.height), Math.sin(angle) * shape.radius];
+}
+
+function EffectLibShapePreview({ shapes }) {
+  return (
+    <group>
+      {shapes.map((shape, shapeIndex) => {
+        const count = Math.min(220, Math.max(8, shape.particles));
+        const base = shapeBase(shape, shapeIndex);
+
+        return Array.from({ length: count }).map((_, index) => {
+          const point = pointForShape(shape, index, count);
+          if (!point) return null;
+
+          return (
+            <mesh
+              key={`${shape.className}-${shapeIndex}-${index}`}
+              position={[base[0] + point[0], base[1] + point[1], base[2] + point[2]]}
+            >
+              <sphereGeometry args={[Math.max(0.035, shape.size * 0.55), 8, 8]} />
+              <meshBasicMaterial color={shape.color} transparent opacity={0.92} />
+            </mesh>
+          );
+        });
+      })}
+    </group>
+  );
+}
+
 function EquationDots({ eq, timeRef }) {
   const dots = useMemo(() => Array.from({ length: Math.max(0, eq.particles) }), [eq.particles]);
 
@@ -140,7 +234,7 @@ function CameraMode({ mode }) {
   return mode === "free" ? <OrbitControls ref={controlsRef} makeDefault /> : null;
 }
 
-export function PreviewScene({ areas, equations, imageEffects, playing, cameraMode }) {
+export function PreviewScene({ areas, equations, imageEffects, effectLibShapes, playing, cameraMode }) {
   return (
     <Canvas camera={{ position: [0, 3, -7], fov: 75 }} className="preview-canvas">
       <color attach="background" args={["#101217"]} />
@@ -149,6 +243,7 @@ export function PreviewScene({ areas, equations, imageEffects, playing, cameraMo
       <axesHelper args={[5]} />
       <AreaPreview areas={areas} />
       <SpecialMarker />
+      <EffectLibShapePreview shapes={effectLibShapes} />
       <ImageEffectPreview imageEffects={imageEffects} />
       <ParticlePreview equations={equations} playing={playing} />
       <CameraMode mode={cameraMode} />

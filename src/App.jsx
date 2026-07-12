@@ -14,6 +14,7 @@ import {
   addEffectPreset,
   addNewSpell,
   collectAreas,
+  collectEffectLibShapes,
   collectEquations,
   collectImageEffects,
   collectSounds,
@@ -79,6 +80,7 @@ export default function App() {
 
   const parsed = parseResult.data;
   const equations = useMemo(() => collectEquations(parsed), [parsed]);
+  const effectLibShapes = useMemo(() => collectEffectLibShapes(parsed), [parsed]);
   const imageEffects = useMemo(() => collectImageEffects(parsed, imagePreviewAssets), [parsed, imagePreviewAssets]);
   const areas = useMemo(() => collectAreas(parsed), [parsed]);
   const sounds = useMemo(() => collectSounds(parsed), [parsed]);
@@ -146,6 +148,7 @@ export default function App() {
             parseError={parseResult.error}
             counts={{
               equations: equations.length,
+              effectLib: effectLibShapes.length,
               images: imageEffects.length,
               areas: areas.length,
               sounds: sounds.length,
@@ -191,6 +194,7 @@ export default function App() {
             areas={areas}
             equations={equations}
             imageEffects={imageEffects}
+            effectLibShapes={effectLibShapes}
             playing={playing}
             cameraMode={cameraMode}
           />

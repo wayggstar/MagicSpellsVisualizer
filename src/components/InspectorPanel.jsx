@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {
   COMMON_OPTIONS,
+  EFFECTLIB_CLASSES,
+  EFFECTLIB_PRESETS,
   EQUATION_PRESETS,
   IMAGE_EFFECT_PRESETS,
   PARTICLES,
@@ -142,10 +144,47 @@ function EffectAddButtons({ spellName, onAddEffect }) {
   return (
     <>
       <ToolbarButton icon="FX" onClick={() => onAddEffect(spellName, "equation")}>Equation</ToolbarButton>
+      <ToolbarButton icon="EL" onClick={() => onAddEffect(spellName, "effectlib")}>EffectLib</ToolbarButton>
       <ToolbarButton icon="S" onClick={() => onAddEffect(spellName, "sound")}>Sound</ToolbarButton>
       <ToolbarButton icon="I" onClick={() => onAddEffect(spellName, "image")}>Image</ToolbarButton>
       <ToolbarButton icon="CI" onClick={() => onAddEffect(spellName, "coloredImage")}>Colored</ToolbarButton>
     </>
+  );
+}
+
+function buildEffectLibConfig(preset) {
+  const config = {
+    class: preset.className,
+    particle: preset.particle,
+    color: preset.color,
+    particles: preset.particles,
+    period: preset.period,
+    iterations: preset.iterations,
+  };
+
+  for (const key of ["radius", "height", "edgeLength", "length", "yOffset", "text", "size", "stepX", "stepY", "sphere", "reverse"]) {
+    if (preset[key] !== undefined) config[key] = preset[key];
+  }
+
+  return config;
+}
+
+function EffectLibPresetBuilder({ onApplyPreset }) {
+  return (
+    <div className="reference-box">
+      <div className="reference-box__header">
+        <h3>EffectLib Presets</h3>
+        <span>{EFFECTLIB_PRESETS.length}</span>
+      </div>
+      <div className="preset-grid">
+        {EFFECTLIB_PRESETS.map((preset) => (
+          <button key={preset.className} type="button" className="preset-button" onClick={() => onApplyPreset(preset)}>
+            <strong>{preset.label}</strong>
+            <span>{preset.description}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -684,6 +723,107 @@ export function InspectorPanel({
           </Field>
           <Field label="invert">
             <select value={String(effect.invert ?? false)} onChange={(event) => updateSelected((draft) => { draft.effectlib.invert = event.target.value === "true"; })}>
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </Field>
+        </div>
+      </section>
+    );
+  }
+
+  if (selected.effect === "effectlib") {
+    const effect = selected.effectlib;
+
+    return (
+      <section className="panel inspector-panel" aria-label="Inspector">
+        <div className="panel-strip">
+          <span>{effect.class ?? "EffectLib"} Effect</span>
+        </div>
+        <div className="inspector-content">
+          <DiagnosticsForSelection diagnostics={diagnostics} selectedPath={selectedPath} />
+
+          <ActionGroup title="Add">
+            <EffectAddButtons spellName={selectedPath[0]} onAddEffect={onAddEffect} />
+          </ActionGroup>
+
+          <EffectLibPresetBuilder
+            onApplyPreset={(preset) => updateSelected((draft) => {
+              draft.effectlib = buildEffectLibConfig(preset);
+            })}
+          />
+
+          <SavedEffectPresets
+            presets={userEffectPresets}
+            selectedEffect={selected}
+            onSaveCurrent={onSaveEffectPreset}
+            onApplyPreset={(preset) => replaceSelected(preset.effect)}
+            onDeletePreset={onDeleteEffectPreset}
+            applyLabel="Apply to selected effect"
+          />
+
+          <Field label="class">
+            <select value={effect.class ?? "Circle"} onChange={(event) => updateSelected((draft) => { draft.effectlib.class = event.target.value; })}>
+              {EFFECTLIB_CLASSES.map((className) => (
+                <option key={className} value={className}>{className}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="position">
+            <select value={selected.position ?? "caster"} onChange={(event) => updateSelected((draft) => { draft.position = event.target.value; })}>
+              <option value="caster">caster</option>
+              <option value="buffeffectlib">buffeffectlib</option>
+              <option value="orbiteffectlib">orbiteffectlib</option>
+              <option value="special">special</option>
+              <option value="projectile">projectile</option>
+              <option value="target">target</option>
+            </select>
+          </Field>
+          <Field label="particle">
+            <select value={effect.particle ?? "redstone"} onChange={(event) => updateSelected((draft) => { draft.effectlib.particle = event.target.value; })}>
+              {PARTICLES.map((particle) => (
+                <option key={particle} value={particle}>{particle}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="color">
+            <input value={effect.color ?? "ffffff"} onChange={(event) => updateSelected((draft) => { draft.effectlib.color = event.target.value.replace("#", ""); })} />
+          </Field>
+          <Field label="particles">
+            <input type="number" value={effect.particles ?? 48} onChange={(event) => updateSelected((draft) => { draft.effectlib.particles = Number(event.target.value); })} />
+          </Field>
+          <Field label="radius">
+            <input type="number" step="0.1" value={effect.radius ?? 1.5} onChange={(event) => updateSelected((draft) => { draft.effectlib.radius = Number(event.target.value); })} />
+          </Field>
+          <Field label="height">
+            <input type="number" step="0.1" value={effect.height ?? effect.tornadoHeight ?? 3} onChange={(event) => updateSelected((draft) => { draft.effectlib.height = Number(event.target.value); })} />
+          </Field>
+          <Field label="edgeLength">
+            <input type="number" step="0.1" value={effect.edgeLength ?? 3} onChange={(event) => updateSelected((draft) => { draft.effectlib.edgeLength = Number(event.target.value); })} />
+          </Field>
+          <Field label="length">
+            <input type="number" step="0.1" value={effect.length ?? 4} onChange={(event) => updateSelected((draft) => { draft.effectlib.length = Number(event.target.value); })} />
+          </Field>
+          <Field label="yOffset">
+            <input type="number" step="0.1" value={effect.yOffset ?? 1.4} onChange={(event) => updateSelected((draft) => { draft.effectlib.yOffset = Number(event.target.value); })} />
+          </Field>
+          <Field label="period">
+            <input type="number" value={effect.period ?? 2} onChange={(event) => updateSelected((draft) => { draft.effectlib.period = Number(event.target.value); })} />
+          </Field>
+          <Field label="iterations">
+            <input type="number" value={effect.iterations ?? 80} onChange={(event) => updateSelected((draft) => { draft.effectlib.iterations = Number(event.target.value); })} />
+          </Field>
+          <Field label="text">
+            <input value={effect.text ?? ""} onChange={(event) => updateSelected((draft) => { draft.effectlib.text = event.target.value; })} />
+          </Field>
+          <Field label="sphere">
+            <select value={String(effect.sphere ?? false)} onChange={(event) => updateSelected((draft) => { draft.effectlib.sphere = event.target.value === "true"; })}>
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </Field>
+          <Field label="reverse">
+            <select value={String(effect.reverse ?? false)} onChange={(event) => updateSelected((draft) => { draft.effectlib.reverse = event.target.value === "true"; })}>
               <option value="false">false</option>
               <option value="true">true</option>
             </select>

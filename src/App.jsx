@@ -2,10 +2,12 @@ import * as YAML from "js-yaml";
 import { useEffect, useMemo, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import "./App.css";
+import { AiBuilderPanel } from "./components/AiBuilderPanel";
 import { EditorPanel } from "./components/EditorPanel";
 import { FlowPanel } from "./components/FlowPanel";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { PreviewPanel } from "./components/PreviewPanel";
+import { ToolbarButton } from "./components/ToolbarButton";
 import { sampleYaml } from "./data/sampleYaml";
 import { buildSpellFlow } from "./lib/flowModel";
 import {
@@ -35,8 +37,38 @@ function loadLocalStorageValue(key, fallback) {
   }
 }
 
-export default function App() {
-  const [yamlText, setYamlText] = useState(sampleYaml);
+function HomeScreen({ onOpenBuilder, onOpenVisualizer }) {
+  return (
+    <main className="home-shell">
+      <section className="home-hero">
+        <div className="home-hero__copy">
+          <p className="eyebrow">MagicSpells Studio</p>
+          <h1>매펠을 설계하고, 구조를 보고, YAML까지 뽑는 작업실</h1>
+          <p>
+            Visualizer는 직접 YAML을 만지는 공간이고, AI Builder는 아이템/클릭 구상도를 입력하면 RAG 예제 기반으로 구조와 코드 초안을 만들어주는 실험실이야.
+          </p>
+        </div>
+        <div className="home-actions">
+          <button type="button" className="home-choice" onClick={onOpenBuilder}>
+            <strong>AI Builder</strong>
+            <span>아이템, 우클릭, 좌클릭, 쉬좌, 쉬우, 쉬쉬 입력으로 매펠 초안 생성</span>
+          </button>
+          <button type="button" className="home-choice" onClick={onOpenVisualizer}>
+            <strong>Visualizer</strong>
+            <span>YAML 편집, 그래프 구조 확인, EffectLib/이미지 파티클 미리보기</span>
+          </button>
+        </div>
+      </section>
+      <section className="home-strip">
+        <div><strong>RAG</strong><span>예제를 추가할수록 로컬 검색 자료가 축적됨</span></div>
+        <div><strong>Structure</strong><span>공개 스펠과 helper-spell 체인을 먼저 구성</span></div>
+        <div><strong>YAML</strong><span>생성 결과를 바로 Visualizer에서 검증</span></div>
+      </section>
+    </main>
+  );
+}
+
+function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenHome }) {
   const [playing, setPlaying] = useState(true);
   const [cameraMode, setCameraMode] = useState("third");
   const [selectedPath, setSelectedPath] = useState(null);
@@ -140,6 +172,16 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      <div className="mode-bar">
+        <div>
+          <strong>Visualizer</strong>
+          <span>MagicSpells YAML Workspace</span>
+        </div>
+        <div className="mode-bar__actions">
+          <ToolbarButton icon="AI" onClick={onOpenBuilder}>AI Builder</ToolbarButton>
+          <ToolbarButton icon="H" onClick={onOpenHome}>Home</ToolbarButton>
+        </div>
+      </div>
       <Group orientation="horizontal" className="workspace">
         <Panel defaultSize={32} minSize={24}>
           <EditorPanel
@@ -201,5 +243,32 @@ export default function App() {
         </Panel>
       </Group>
     </main>
+  );
+}
+
+export default function App() {
+  const [mode, setMode] = useState("home");
+  const [yamlText, setYamlText] = useState(sampleYaml);
+
+  if (mode === "home") {
+    return <HomeScreen onOpenBuilder={() => setMode("builder")} onOpenVisualizer={() => setMode("visualizer")} />;
+  }
+
+  if (mode === "builder") {
+    return (
+      <AiBuilderPanel
+        onOpenVisualizer={() => setMode("visualizer")}
+        onLoadYaml={setYamlText}
+      />
+    );
+  }
+
+  return (
+    <VisualizerWorkspace
+      yamlText={yamlText}
+      setYamlText={setYamlText}
+      onOpenBuilder={() => setMode("builder")}
+      onOpenHome={() => setMode("home")}
+    />
   );
 }

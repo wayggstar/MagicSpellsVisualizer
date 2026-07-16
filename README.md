@@ -5,6 +5,7 @@ MagicSpells Visualizer is a React workspace for editing Minecraft MagicSpells YA
 ## What It Does
 
 - Edit MagicSpells YAML with CodeMirror.
+- Draft MagicSpells projects in an experimental AI Builder using item/trigger slots and local RAG examples.
 - Parse spells, called spell chains, `EquationEffect`, area spells, and sounds.
 - Inspect spell relationships as a React Flow graph.
 - Edit common spell/effect fields from an inspector panel.

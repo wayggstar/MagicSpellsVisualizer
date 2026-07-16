@@ -75,17 +75,13 @@ function HomeScreen({ onOpenBuilder, onOpenDatabase, onOpenVisualizer }) {
   );
 }
 
-function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenDatabase, onOpenHome }) {
+function VisualizerWorkspace({ yamlText, setYamlText, imagePreviewAssets, setImagePreviewAssets, onOpenBuilder, onOpenDatabase, onOpenHome }) {
   const [playing, setPlaying] = useState(true);
   const [cameraMode, setCameraMode] = useState("third");
   const [selectedPath, setSelectedPath] = useState(null);
   const [userEffectPresets, setUserEffectPresets] = useState(() => {
     const presets = loadLocalStorageValue(USER_EFFECT_PRESETS_KEY, []);
     return Array.isArray(presets) ? presets : [];
-  });
-  const [imagePreviewAssets, setImagePreviewAssets] = useState(() => {
-    const assets = loadLocalStorageValue(IMAGE_PREVIEW_ASSETS_KEY, {});
-    return isRecord(assets) ? assets : {};
   });
 
   useEffect(() => {
@@ -95,14 +91,6 @@ function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenDatab
       // Presets are optional convenience data; YAML editing still works if browser storage is unavailable.
     }
   }, [userEffectPresets]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(IMAGE_PREVIEW_ASSETS_KEY, JSON.stringify(imagePreviewAssets));
-    } catch {
-      // Image previews are convenience data; YAML remains valid without them.
-    }
-  }, [imagePreviewAssets]);
 
   const parseResult = useMemo(() => {
     try {
@@ -258,6 +246,10 @@ export default function App() {
   const [mode, setMode] = useState("home");
   const [yamlText, setYamlText] = useState(sampleYaml);
   const [spellPacks, setSpellPacks] = useState([]);
+  const [imagePreviewAssets, setImagePreviewAssets] = useState(() => {
+    const assets = loadLocalStorageValue(IMAGE_PREVIEW_ASSETS_KEY, {});
+    return isRecord(assets) ? assets : {};
+  });
 
   const refreshSpellPacks = useCallback(async () => {
     try {
@@ -270,6 +262,14 @@ export default function App() {
   useEffect(() => {
     refreshSpellPacks();
   }, [refreshSpellPacks]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(IMAGE_PREVIEW_ASSETS_KEY, JSON.stringify(imagePreviewAssets));
+    } catch {
+      // Image previews are optional; local database and YAML editing still work without storage.
+    }
+  }, [imagePreviewAssets]);
 
   const databaseExamples = useMemo(() => packsToRagExamples(spellPacks), [spellPacks]);
 
@@ -294,6 +294,7 @@ export default function App() {
         packs={spellPacks}
         onPacksChange={refreshSpellPacks}
         onLoadYaml={setYamlText}
+        onLoadImageAssets={(assets) => setImagePreviewAssets((current) => ({ ...current, ...assets }))}
         onOpenVisualizer={() => setMode("visualizer")}
         onOpenBuilder={() => setMode("builder")}
         onOpenHome={() => setMode("home")}
@@ -305,6 +306,8 @@ export default function App() {
     <VisualizerWorkspace
       yamlText={yamlText}
       setYamlText={setYamlText}
+      imagePreviewAssets={imagePreviewAssets}
+      setImagePreviewAssets={setImagePreviewAssets}
       onOpenBuilder={() => setMode("builder")}
       onOpenDatabase={() => setMode("database")}
       onOpenHome={() => setMode("home")}

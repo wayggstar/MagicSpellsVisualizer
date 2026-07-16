@@ -57,7 +57,7 @@ function ImageEffectPreview({ imageEffects }) {
             const x = base[0] + (colIndex - (maxWidth - 1) / 2) * spacing;
             const y = base[1] + ((rows.length - 1) / 2 - rowIndex) * ySpacing;
             const z = base[2] + imageIndex * 0.12;
-            const pixelColor = image.className === "ColoredImage"
+            const pixelColor = ["ColoredImage", "ColoredImageEffect"].includes(image.className)
               ? image.pixelColors?.[rowIndex]?.[colIndex] ?? image.color
               : image.color;
 

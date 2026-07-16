@@ -11,6 +11,12 @@ import {
   WIKI_BASE_URL,
 } from "../data/spellOptions";
 
+export const IMAGE_EFFECT_CLASSES = ["Image", "ImageEffect", "ColoredImage", "ColoredImageEffect"];
+
+export function isColoredImageEffectClass(className) {
+  return ["ColoredImage", "ColoredImageEffect"].includes(className);
+}
+
 export function normalizeEquation(expr) {
   return String(expr)
     .replace(/(\d)(sin|cos|tan)/g, "$1*$2")
@@ -128,7 +134,7 @@ export function collectImageEffects(obj, imagePreviewAssets = {}, result = []) {
 
   if (
     obj.effect === "effectlib" &&
-    ["Image", "ColoredImage"].includes(obj.effectlib?.class)
+    IMAGE_EFFECT_CLASSES.includes(obj.effectlib?.class)
   ) {
     const effect = obj.effectlib;
     const preset = IMAGE_EFFECT_PRESETS.find((item) => item.fileName === effect.fileName) ?? IMAGE_EFFECT_PRESETS[0];
@@ -160,7 +166,7 @@ export function collectEffectLibShapes(obj, result = []) {
   if (
     obj.effect === "effectlib" &&
     obj.effectlib?.class &&
-    !["EquationEffect", "Image", "ColoredImage"].includes(obj.effectlib.class)
+    !["EquationEffect", ...IMAGE_EFFECT_CLASSES].includes(obj.effectlib.class)
   ) {
     const effect = obj.effectlib;
 
@@ -323,7 +329,7 @@ export function validateSpellConfig(parsed) {
         }
       }
 
-      if (effect.effect === "effectlib" && ["Image", "ColoredImage"].includes(effect.effectlib?.class)) {
+      if (effect.effect === "effectlib" && IMAGE_EFFECT_CLASSES.includes(effect.effectlib?.class)) {
         if (!effect.effectlib.fileName) {
           diagnostics.push(
             makeDiagnostic("warning", spellName, `Image effect "${effectKey}" should define fileName.`, [

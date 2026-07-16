@@ -1,8 +1,12 @@
 import * as YAML from "js-yaml";
+import { normalizePackResourceName, resolveSpellPackMetadata } from "../data/spellPackMetadata.js";
+import { rasterizeImageFile } from "./imagePreview.js";
 
 const DATABASE_NAME = "magicspellsvisualizer";
 const DATABASE_VERSION = 1;
 const PACK_STORE = "spellPacks";
+const SUPPORT_FILE_PATTERN = /\.(sk|txt|png|jpe?g|webp|gif)$/i;
+const IMAGE_FILE_PATTERN = /\.(png|jpe?g|webp|gif)$/i;
 
 const REFERENCE_KEYS = new Set([
   "spell",
@@ -129,7 +133,8 @@ async function decodeFile(file) {
   }
 }
 
-function makePackTitle(file, rawYaml) {
+function makePackTitle(file, rawYaml, metadata) {
+  if (metadata?.title) return metadata.title;
   const relativePath = file.webkitRelativePath || file.name;
   const signature = `${relativePath}\n${rawYaml.slice(0, 12000)}`;
 
@@ -146,6 +151,66 @@ function makePackTitle(file, rawYaml) {
 function makePackId(file) {
   const relativePath = file.webkitRelativePath || file.name;
   return `${relativePath}-${file.size}-${file.lastModified}`;
+}
+
+function getFileRoot(file) {
+  const relativePath = file.webkitRelativePath || "";
+  return relativePath.includes("/") ? relativePath.split("/")[0] : "";
+}
+
+function collectImagePaths(value, result = new Set()) {
+  if (!value || typeof value !== "object") return result;
+
+  if (typeof value.fileName === "string") result.add(value.fileName.trim());
+  for (const child of Object.values(value)) collectImagePaths(child, result);
+  return result;
+}
+
+async function readTextResources(files) {
+  return Promise.all(files.filter((file) => /\.(sk|txt)$/i.test(file.name)).map(async (file) => ({
+    kind: "text",
+    name: file.name,
+    originalName: file.name,
+    relativePath: file.webkitRelativePath || file.name,
+    language: /\.sk$/i.test(file.name) ? "skript" : "text",
+    content: await decodeFile(file),
+  })));
+}
+
+async function buildSupportFiles(files, metadata, parsed, textResources) {
+  const imagePaths = [...collectImagePaths(parsed)];
+  const normalizedTextResources = textResources.map((resource) => ({
+    ...resource,
+    name: normalizePackResourceName(resource.name, metadata?.id),
+  }));
+  const imageResources = [];
+
+  for (const file of files.filter((candidate) => IMAGE_FILE_PATTERN.test(candidate.name))) {
+    const name = normalizePackResourceName(file.name, metadata?.id);
+    const matchedPath = imagePaths.find((path) => path.split("/").at(-1) === name) ?? name;
+    try {
+      imageResources.push({
+        kind: "image",
+        name,
+        originalName: file.name,
+        relativePath: file.webkitRelativePath || file.name,
+        effectPath: matchedPath,
+        preview: await rasterizeImageFile(file),
+      });
+    } catch {
+      imageResources.push({
+        kind: "image",
+        name,
+        originalName: file.name,
+        relativePath: file.webkitRelativePath || file.name,
+        effectPath: matchedPath,
+        preview: null,
+        error: "Could not rasterize this image.",
+      });
+    }
+  }
+
+  return [...normalizedTextResources, ...imageResources];
 }
 
 function normalizeReference(value, parsed) {
@@ -175,6 +240,55 @@ function collectReferences(value, parsed, parentKey = "", result = new Set()) {
   return result;
 }
 
+function collectSupportCommandBridges(supportFiles, parsed, metadata) {
+  const bridges = new Map();
+  const commandPattern = /^command\s+\/([^:\s]+):\s*\n([\s\S]*?)(?=^(?:command|every|on)\b|(?![\s\S]))/gim;
+
+  for (const resource of supportFiles.filter((item) => item.kind === "text" && item.language === "skript")) {
+    for (const match of resource.content.matchAll(commandPattern)) {
+      const references = new Set();
+      const castPattern = /\/ms\s+cast(?:\s+as\s+\S+)?\s+([^\s"]+)/gi;
+
+      for (const castMatch of match[2].matchAll(castPattern)) {
+        const reference = normalizeReference(castMatch[1], parsed);
+        if (reference) references.add(reference);
+      }
+
+      bridges.set(match[1].toLowerCase(), references);
+    }
+  }
+
+  for (const [command, names] of Object.entries(metadata?.commandBridges ?? {})) {
+    const references = bridges.get(command.toLowerCase()) ?? new Set();
+    names.forEach((name) => {
+      const reference = normalizeReference(name, parsed);
+      if (reference) references.add(reference);
+    });
+    bridges.set(command.toLowerCase(), references);
+  }
+
+  return bridges;
+}
+
+function collectCommandReferences(spell, parsed, supportBridges) {
+  const references = new Set();
+  const commands = spell["command-to-execute"];
+
+  for (const command of Array.isArray(commands) ? commands : commands ? [commands] : []) {
+    const text = String(command).trim().replace(/^\//, "");
+    const directCast = text.match(/^c\s+([^\s]+)/i);
+    if (directCast) {
+      const reference = normalizeReference(directCast[1], parsed);
+      if (reference) references.add(reference);
+    }
+
+    const commandName = text.split(/\s+/)[0].toLowerCase();
+    supportBridges.get(commandName)?.forEach((reference) => references.add(reference));
+  }
+
+  return references;
+}
+
 export async function listSpellPacks() {
   if (typeof window === "undefined" || !window.indexedDB) return [];
   const packs = await runStore("readonly", (store) => store.getAll());
@@ -182,11 +296,17 @@ export async function listSpellPacks() {
 }
 
 export async function importSpellFiles(fileList) {
-  const files = Array.from(fileList).filter((file) => /\.ya?ml$/i.test(file.name));
+  const allFiles = Array.from(fileList);
+  const files = allFiles.filter((file) => /\.ya?ml$/i.test(file.name));
   const imported = [];
 
   for (const file of files) {
-    const pack = await createSpellPack(file);
+    const root = getFileRoot(file);
+    const supportFiles = allFiles.filter((candidate) => {
+      if (!SUPPORT_FILE_PATTERN.test(candidate.name)) return false;
+      return !root || getFileRoot(candidate) === root;
+    });
+    const pack = await createSpellPack(file, supportFiles);
     await runStore("readwrite", (store) => store.put(pack));
     imported.push(pack);
   }
@@ -194,18 +314,29 @@ export async function importSpellFiles(fileList) {
   return imported;
 }
 
-export async function createSpellPack(file) {
+export async function createSpellPack(file, supportSourceFiles = []) {
   const rawYaml = await decodeFile(file);
   const { parsed, parseError } = parsePack(rawYaml);
+  const textResources = await readTextResources(supportSourceFiles);
+  const supportText = textResources.map((resource) => resource.content).join("\n");
+  const metadata = resolveSpellPackMetadata(rawYaml, supportText);
+  const supportFiles = await buildSupportFiles(supportSourceFiles, metadata, parsed, textResources);
+  const imagePreviewAssets = Object.fromEntries(supportFiles
+    .filter((resource) => resource.kind === "image" && resource.preview)
+    .map((resource) => [resource.effectPath, resource.preview]));
+
   return {
     id: makePackId(file),
-    title: makePackTitle(file, rawYaml),
+    title: makePackTitle(file, rawYaml, metadata),
     fileName: file.name,
     relativePath: file.webkitRelativePath || file.name,
     importedAt: new Date().toISOString(),
     rawYaml,
     parseError,
     spells: indexSpells(parsed),
+    metadata,
+    supportFiles,
+    imagePreviewAssets,
   };
 }
 
@@ -213,7 +344,7 @@ export async function deleteSpellPack(packId) {
   await runStore("readwrite", (store) => store.delete(packId));
 }
 
-function buildSpellChainFromParsed(parsed, spellName) {
+function buildSpellChainFromParsed(parsed, spellName, supportBridges = new Map()) {
   if (!parsed[spellName]) return { names: [], yaml: "" };
 
   const names = [];
@@ -224,6 +355,7 @@ function buildSpellChainFromParsed(parsed, spellName) {
     visited.add(name);
     names.push(name);
     collectReferences(parsed[name], parsed).forEach(visit);
+    collectCommandReferences(parsed[name], parsed, supportBridges).forEach(visit);
   }
 
   visit(spellName);
@@ -233,7 +365,8 @@ function buildSpellChainFromParsed(parsed, spellName) {
 
 export function buildSpellChain(pack, spellName) {
   const { parsed } = parsePack(pack.rawYaml);
-  return buildSpellChainFromParsed(parsed, spellName);
+  const supportBridges = collectSupportCommandBridges(pack.supportFiles ?? [], parsed, pack.metadata);
+  return buildSpellChainFromParsed(parsed, spellName, supportBridges);
 }
 
 export function packsToRagExamples(packs) {
@@ -244,11 +377,16 @@ export function packsToRagExamples(packs) {
       return {
         id: `database-${pack.id}-${spell.name}`,
         title: `${pack.title} / ${spell.name}`,
-        tags: [spell.className, spell.trigger, spell.item, "database"].filter(Boolean),
-        intent: `${spell.className} 기반 실제 MagicSpells 예제. 이펙트 ${spell.effectCount}개${spell.helper ? ", 헬퍼 스펠" : ""}.`,
+        tags: [spell.className, spell.trigger, spell.item, ...(pack.metadata?.tags ?? []), "database"].filter(Boolean),
+        intent: pack.metadata?.summary ?? `${spell.className} 기반 실제 MagicSpells 예제. 이펙트 ${spell.effectCount}개${spell.helper ? ", 헬퍼 스펠" : ""}.`,
         item: spell.item,
         trigger: spell.trigger,
-        notes: [`Local database: ${pack.fileName}`, `Spell class: ${spell.spellClass}`],
+        notes: [
+          `Local database: ${pack.fileName}`,
+          `Spell class: ${spell.spellClass}`,
+          ...(pack.metadata?.skills ?? []).map((skill) => `${skill.trigger} ${skill.name}: ${skill.description}`),
+          ...(pack.metadata?.reactions ?? []).map((reaction) => `${reaction.name}: ${reaction.description}`),
+        ],
         yaml: snippet,
       };
     });

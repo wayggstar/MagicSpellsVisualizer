@@ -135,8 +135,8 @@ function makePackTitle(file, rawYaml) {
 
   if (/dandeluga|단데르가/i.test(signature)) return "대검 단데르가";
   if (/Vendetta|Ven_V|벤데타/i.test(signature)) return "벤데타";
-  if (/Ex_Judgment_LS_MagicSquare_AE/.test(signature)) return "엑스칼리버 소드 이펙트";
   if (/Excalibur_M|ExC_SLM/.test(signature)) return "엑스칼리버 미카엘";
+  if (/Ex_Judgment_LS_MagicSquare_AE/.test(signature)) return "엑스칼리버 소드 이펙트";
   if (/waterLancer|WLPain|WL_PainD|\blancer:/.test(signature)) return "물의 랜서";
 
   const rootFolder = relativePath.includes("/") ? relativePath.split("/")[0] : "";

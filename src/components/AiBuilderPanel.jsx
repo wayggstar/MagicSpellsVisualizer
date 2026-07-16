@@ -20,7 +20,7 @@ function ExampleCard({ example }) {
   );
 }
 
-export function AiBuilderPanel({ onOpenVisualizer, onLoadYaml }) {
+export function AiBuilderPanel({ databaseExamples = [], onOpenDatabase, onOpenVisualizer, onLoadYaml }) {
   const [form, setForm] = useState({
     name: "shadow_blade",
     displayName: "Shadow Blade",
@@ -33,14 +33,15 @@ export function AiBuilderPanel({ onOpenVisualizer, onLoadYaml }) {
       shiftRight: "짧은 시간 보호막과 영혼 파티클 버프",
     },
   });
-  const [examples, setExamples] = useState(() => loadRagExamples());
+  const [localExamples, setLocalExamples] = useState(() => loadRagExamples());
   const [customExample, setCustomExample] = useState({
     title: "",
     tags: "",
     intent: "",
     yaml: "",
   });
-  const [result, setResult] = useState(() => buildMapleSpellProject(form, loadRagExamples()));
+  const examples = useMemo(() => [...databaseExamples, ...localExamples], [databaseExamples, localExamples]);
+  const [result, setResult] = useState(() => buildMapleSpellProject(form, [...databaseExamples, ...loadRagExamples()]));
 
   const liveMatches = useMemo(() => {
     const query = [
@@ -78,7 +79,7 @@ export function AiBuilderPanel({ onOpenVisualizer, onLoadYaml }) {
       yaml: customExample.yaml.trim(),
     });
 
-    setExamples([...nextStored, ...BASE_RAG_EXAMPLES]);
+    setLocalExamples([...nextStored, ...BASE_RAG_EXAMPLES]);
     setCustomExample({ title: "", tags: "", intent: "", yaml: "" });
   }
 
@@ -95,6 +96,7 @@ export function AiBuilderPanel({ onOpenVisualizer, onLoadYaml }) {
           <h1>매펠 AI 설계실</h1>
         </div>
         <div className="builder-nav-actions">
+          <ToolbarButton icon="DB" onClick={onOpenDatabase}>Spell DB</ToolbarButton>
           <ToolbarButton icon="3D" onClick={onOpenVisualizer}>Visualizer</ToolbarButton>
           <ToolbarButton icon="AI" isActive>AI Builder</ToolbarButton>
         </div>
@@ -141,7 +143,7 @@ export function AiBuilderPanel({ onOpenVisualizer, onLoadYaml }) {
           <section className="builder-panel">
             <div className="builder-panel__header">
               <h3>RAG 예제 추가</h3>
-              <span>{examples.length} examples</span>
+              <span>{examples.length} examples · DB {databaseExamples.length}</span>
             </div>
             <label className="builder-field">
               <span>제목</span>

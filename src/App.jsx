@@ -1,5 +1,5 @@
 import * as YAML from "js-yaml";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import "./App.css";
 import { AiBuilderPanel } from "./components/AiBuilderPanel";
@@ -7,9 +7,11 @@ import { EditorPanel } from "./components/EditorPanel";
 import { FlowPanel } from "./components/FlowPanel";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { PreviewPanel } from "./components/PreviewPanel";
+import { SpellDatabasePanel } from "./components/SpellDatabasePanel";
 import { ToolbarButton } from "./components/ToolbarButton";
 import { sampleYaml } from "./data/sampleYaml";
 import { buildSpellFlow } from "./lib/flowModel";
+import { listSpellPacks, packsToRagExamples } from "./lib/spellDatabase";
 import {
   addCalledSpell,
   addEffect,
@@ -37,7 +39,7 @@ function loadLocalStorageValue(key, fallback) {
   }
 }
 
-function HomeScreen({ onOpenBuilder, onOpenVisualizer }) {
+function HomeScreen({ onOpenBuilder, onOpenDatabase, onOpenVisualizer }) {
   return (
     <main className="home-shell">
       <section className="home-hero">
@@ -49,6 +51,10 @@ function HomeScreen({ onOpenBuilder, onOpenVisualizer }) {
           </p>
         </div>
         <div className="home-actions">
+          <button type="button" className="home-choice" onClick={onOpenDatabase}>
+            <strong>Spell Database</strong>
+            <span>배포팩/YAML을 이 기기에 저장하고 실제 스펠 구조를 검색</span>
+          </button>
           <button type="button" className="home-choice" onClick={onOpenBuilder}>
             <strong>AI Builder</strong>
             <span>아이템, 우클릭, 좌클릭, 쉬좌, 쉬우, 쉬쉬 입력으로 매펠 초안 생성</span>
@@ -59,7 +65,8 @@ function HomeScreen({ onOpenBuilder, onOpenVisualizer }) {
           </button>
         </div>
       </section>
-      <section className="home-strip">
+      <section className="home-strip home-strip--four">
+        <div><strong>Local DB</strong><span>원본 YAML은 서버가 아닌 브라우저에만 저장</span></div>
         <div><strong>RAG</strong><span>예제를 추가할수록 로컬 검색 자료가 축적됨</span></div>
         <div><strong>Structure</strong><span>공개 스펠과 helper-spell 체인을 먼저 구성</span></div>
         <div><strong>YAML</strong><span>생성 결과를 바로 Visualizer에서 검증</span></div>
@@ -68,7 +75,7 @@ function HomeScreen({ onOpenBuilder, onOpenVisualizer }) {
   );
 }
 
-function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenHome }) {
+function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenDatabase, onOpenHome }) {
   const [playing, setPlaying] = useState(true);
   const [cameraMode, setCameraMode] = useState("third");
   const [selectedPath, setSelectedPath] = useState(null);
@@ -178,6 +185,7 @@ function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenHome 
           <span>MagicSpells YAML Workspace</span>
         </div>
         <div className="mode-bar__actions">
+          <ToolbarButton icon="DB" onClick={onOpenDatabase}>Spell DB</ToolbarButton>
           <ToolbarButton icon="AI" onClick={onOpenBuilder}>AI Builder</ToolbarButton>
           <ToolbarButton icon="H" onClick={onOpenHome}>Home</ToolbarButton>
         </div>
@@ -249,16 +257,46 @@ function VisualizerWorkspace({ yamlText, setYamlText, onOpenBuilder, onOpenHome 
 export default function App() {
   const [mode, setMode] = useState("home");
   const [yamlText, setYamlText] = useState(sampleYaml);
+  const [spellPacks, setSpellPacks] = useState([]);
+
+  const refreshSpellPacks = useCallback(async () => {
+    try {
+      setSpellPacks(await listSpellPacks());
+    } catch {
+      setSpellPacks([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSpellPacks();
+  }, [refreshSpellPacks]);
+
+  const databaseExamples = useMemo(() => packsToRagExamples(spellPacks), [spellPacks]);
 
   if (mode === "home") {
-    return <HomeScreen onOpenBuilder={() => setMode("builder")} onOpenVisualizer={() => setMode("visualizer")} />;
+    return <HomeScreen onOpenBuilder={() => setMode("builder")} onOpenDatabase={() => setMode("database")} onOpenVisualizer={() => setMode("visualizer")} />;
   }
 
   if (mode === "builder") {
     return (
       <AiBuilderPanel
+        databaseExamples={databaseExamples}
+        onOpenDatabase={() => setMode("database")}
         onOpenVisualizer={() => setMode("visualizer")}
         onLoadYaml={setYamlText}
+      />
+    );
+  }
+
+  if (mode === "database") {
+    return (
+      <SpellDatabasePanel
+        packs={spellPacks}
+        onPacksChange={refreshSpellPacks}
+        onLoadYaml={setYamlText}
+        onOpenVisualizer={() => setMode("visualizer")}
+        onOpenBuilder={() => setMode("builder")}
+        onOpenHome={() => setMode("home")}
       />
     );
   }
@@ -268,6 +306,7 @@ export default function App() {
       yamlText={yamlText}
       setYamlText={setYamlText}
       onOpenBuilder={() => setMode("builder")}
+      onOpenDatabase={() => setMode("database")}
       onOpenHome={() => setMode("home")}
     />
   );

@@ -10,7 +10,8 @@
 }
 
 .home-shell,
-.builder-shell {
+.builder-shell,
+.database-shell {
   min-height: 100svh;
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.14), transparent 38%),
@@ -90,6 +91,10 @@
   gap: 12px;
   width: min(1120px, 100%);
   margin: 0 auto;
+}
+
+.home-strip--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .home-strip div {
@@ -316,6 +321,390 @@
 
 .builder-code--prompt {
   max-height: 260px;
+}
+
+.database-shell {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.database-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+  border-bottom: 1px solid #252b36;
+  padding: 10px 14px;
+  background: rgba(15, 18, 25, 0.92);
+}
+
+.database-toolbar__summary,
+.database-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.database-toolbar__summary strong {
+  color: #ffffff;
+  font-size: 19px;
+}
+
+.database-toolbar__summary span {
+  margin-right: 10px;
+  color: #8f9bac;
+  font-size: 11px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.database-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.7fr) minmax(360px, 1.15fr) minmax(380px, 1.35fr);
+  height: calc(100svh - 124px);
+}
+
+.database-sidebar,
+.database-results,
+.database-detail {
+  min-width: 0;
+  overflow: auto;
+  border-right: 1px solid #252b36;
+  background: rgba(15, 18, 25, 0.94);
+}
+
+.database-sidebar,
+.database-detail {
+  padding: 14px;
+}
+
+.database-panel-header,
+.database-detail__header,
+.database-results__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.database-panel-header {
+  margin-bottom: 10px;
+}
+
+.database-panel-header span,
+.database-results__header,
+.database-detail__header span,
+.database-detail__header p {
+  color: #8f9bac;
+  font-size: 11px;
+}
+
+.database-pack-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.database-pack {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #2a3444;
+  border-radius: 7px;
+  color: #dce7f5;
+  background: #151a23;
+  text-align: left;
+}
+
+button.database-pack {
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.database-pack > button:first-child {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.database-pack.is-selected,
+.database-pack:hover {
+  border-color: #39d6c3;
+  background: #123032;
+}
+
+.database-pack strong,
+.database-pack span,
+.database-pack small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.database-pack strong {
+  font-size: 12px;
+}
+
+.database-pack span,
+.database-pack small {
+  color: #91a0b1;
+  font-size: 10px;
+}
+
+.database-delete {
+  align-self: stretch;
+  width: 34px;
+  flex: 0 0 34px;
+  border-left: 1px solid #2a3444;
+  color: #91a0b1;
+  background: transparent;
+  font-size: 18px;
+}
+
+.database-delete:hover {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.database-results {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.database-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.42fr);
+  gap: 8px;
+  border-bottom: 1px solid #252b36;
+  padding: 12px;
+}
+
+.database-filters label {
+  display: grid;
+  gap: 5px;
+  color: #8f9bac;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.database-filters input,
+.database-filters select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #344052;
+  border-radius: 7px;
+  padding: 0 9px;
+  color: #edf3fb;
+  background: #171d27;
+}
+
+.database-results__header {
+  min-height: 38px;
+  border-bottom: 1px solid #252b36;
+  padding: 8px 12px;
+}
+
+.database-spell-list {
+  overflow: auto;
+}
+
+.database-spell-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  border-bottom: 1px solid #252b36;
+  padding: 9px 12px;
+  color: #dce7f5;
+  background: transparent;
+  text-align: left;
+}
+
+.database-spell-row:hover,
+.database-spell-row.is-selected {
+  background: #122629;
+}
+
+.database-spell-row.is-selected {
+  box-shadow: inset 3px 0 #39d6c3;
+}
+
+.database-spell-row__main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.database-spell-row__main strong,
+.database-spell-row__main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.database-spell-row__main strong {
+  font-size: 12px;
+}
+
+.database-spell-row__main small {
+  color: #7f8b9b;
+  font-size: 10px;
+}
+
+.database-spell-row__meta,
+.database-chain-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.database-spell-row__meta {
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.database-spell-row__meta span,
+.database-chain-tags span {
+  border: 1px solid #344052;
+  border-radius: 999px;
+  padding: 3px 6px;
+  color: #aeece2;
+  background: rgba(57, 214, 195, 0.08);
+  font-size: 9px;
+}
+
+.database-detail {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border-right: 0;
+}
+
+.database-detail__header {
+  align-items: flex-start;
+}
+
+.database-detail__header > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.database-detail__header h2 {
+  color: #ffffff;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.database-detail__header p {
+  overflow-wrap: anywhere;
+}
+
+.database-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.database-detail-grid div {
+  min-width: 0;
+  border: 1px solid #2a3444;
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.database-detail-grid dt {
+  color: #7f8b9b;
+  font-size: 9px;
+}
+
+.database-detail-grid dd {
+  margin: 4px 0 0;
+  color: #e5edf7;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.database-code {
+  min-height: 220px;
+  max-height: calc(100svh - 330px);
+  margin: 0;
+  border: 1px solid #263142;
+  border-radius: 7px;
+  padding: 12px;
+  color: #d5deea;
+  background: #0d1118;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.database-empty {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  border: 1px dashed #344052;
+  border-radius: 7px;
+  padding: 14px;
+  color: #9ca8b7;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.database-empty strong {
+  color: #dce7f5;
+  font-size: 12px;
+}
+
+.database-empty p {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.database-empty--detail {
+  align-self: center;
+  justify-self: center;
+  width: min(320px, 100%);
+  text-align: center;
+}
+
+.database-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: min(460px, calc(100vw - 32px));
+  border: 1px solid #2f7569;
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: #d9fff8;
+  background: #12302d;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+  font-size: 12px;
 }
 
 .panel {
@@ -877,9 +1266,10 @@ h3 {
   overflow: auto;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1100px) {
   .home-shell,
-  .builder-shell {
+  .builder-shell,
+  .database-shell {
     height: auto;
     min-height: 100svh;
     overflow: auto;
@@ -887,7 +1277,8 @@ h3 {
 
   .home-hero,
   .home-strip,
-  .builder-layout {
+  .builder-layout,
+  .database-layout {
     grid-template-columns: 1fr;
   }
 
@@ -897,6 +1288,39 @@ h3 {
 
   .builder-layout {
     height: auto;
+  }
+
+  .database-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .database-layout {
+    height: auto;
+  }
+
+  .database-sidebar,
+  .database-results,
+  .database-detail {
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid #252b36;
+  }
+
+  .database-sidebar {
+    max-height: 360px;
+  }
+
+  .database-results {
+    height: 560px;
+  }
+
+  .database-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .database-code {
+    max-height: 520px;
   }
 
   .builder-column {
